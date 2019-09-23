@@ -1,0 +1,29 @@
+version: '3'
+services:
+  database:
+    image: mysql:8.0
+    volumes:
+      - "./.mysql-data/db:/var/lib/mysql"
+    restart: always
+    ports:
+      - 3306:3306
+    environment:
+      MYSQL_ROOT_PASSWORD: password
+      MYSQL_DATABASE: restaurant
+      MYSQL_USER: root
+      MYSQL_PASSWORD: password
+    networks:
+      - internal
+
+  server:
+    build: .
+    restart: on-failure
+    ports:
+      - 4000:4000
+    depends_on:
+      - database
+    networks:
+      - internal
+networks:
+  internal:
+    driver: "bridge"
