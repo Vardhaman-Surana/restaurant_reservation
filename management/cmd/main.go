@@ -12,6 +12,20 @@ import (
 func main() {
 	port := os.Getenv("PORT")
 	dbURL := os.Getenv("DBURL")
+	log.SetFlags(log.LstdFlags | log.Lmicroseconds)
+	/*
+	testing log file entry
+	 */
+	f, err := os.OpenFile("/Users/vds/management.log", os.O_RDWR | os.O_CREATE | os.O_APPEND, 0666)
+	if err != nil {
+		log.Fatalf("error opening file: %v", err)
+	}
+	defer f.Close()
+
+	log.SetOutput(f)
+
+
+
 	// create database instance
 	// when not using db4free the restaurant
 	db, err := mysql.NewMySqlDB(dbURL)

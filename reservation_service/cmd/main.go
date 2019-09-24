@@ -14,6 +14,20 @@ func main() {
 	port := os.Getenv("PORT")
 	dbURL := os.Getenv("DBURL")
 	RabbitURL:=os.Getenv("RABBITMQ_URL")
+	log.SetFlags(log.LstdFlags | log.Lmicroseconds)
+	/*
+	Testing log output in a file
+	 */
+	f, err := os.OpenFile("/Users/vds/reservationService.log", os.O_RDWR | os.O_CREATE | os.O_APPEND, 0666)
+	if err != nil {
+		log.Fatalf("error opening file: %v", err)
+	}
+	defer f.Close()
+
+	log.SetOutput(f)
+
+
+
 	_=queue.InitializeQueue(RabbitURL)
 	dbMap, err := mysql.NewMysqlDbMap(dbURL)
 	if err != nil {
