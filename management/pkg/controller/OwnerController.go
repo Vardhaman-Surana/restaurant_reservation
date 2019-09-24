@@ -3,23 +3,32 @@ package controller
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/fluent/fluent-logger-golang/fluent"
 	"github.com/gin-gonic/gin"
 	"github.com/vds/restaurant_reservation/management/pkg/database"
 	"github.com/vds/restaurant_reservation/management/pkg/middleware"
 	"github.com/vds/restaurant_reservation/management/pkg/models"
+	"log"
 	"net/http"
+	"time"
 )
 
 type OwnerController struct{
 	database.Database
+	Logger *fluent.Fluent
 }
 
-func NewOwnerController(db database.Database)*OwnerController{
+func NewOwnerController(db database.Database,logger *fluent.Fluent)*OwnerController{
 	ownerController:=new(OwnerController)
 	ownerController.Database=db
+	ownerController.Logger=logger
 	return ownerController
 }
 func(o *OwnerController)GetOwners(c *gin.Context){
+	er:=o.Logger.Post(Tag,map[string]string{"infunc":GetfuncName(),"atTime":fmt.Sprintf("%v",time.Now().UnixNano()/1e6),"req":fmt.Sprintf("%v",c.Request.URL),"info":fmt.Sprintf("Serving Request")})
+	if er!=nil{
+		log.Printf("error in posting log:%v",er)
+	}
 	value,_:=c.Get("userAuth")
 	userAuth:=value.(*models.UserAuth)
 	jsonData:=&[]models.UserOutput{}
@@ -33,11 +42,18 @@ func(o *OwnerController)GetOwners(c *gin.Context){
 	if stringData!=""{
 		_=json.Unmarshal([]byte(stringData),jsonData)
 	}
-	fmt.Printf("Sent Data : %+v",jsonData)
 	c.JSON(http.StatusOK,jsonData)
+	er=o.Logger.Post(Tag,map[string]string{"infunc":GetfuncName(),"atTime":fmt.Sprintf("%v",time.Now().UnixNano()/1e6),"req":fmt.Sprintf("%v",c.Request.URL),"info":fmt.Sprintf("Served")})
+	if er!=nil{
+		log.Printf("error in posting log:%v",er)
+	}
 }
 
 func(o *OwnerController)AddOwner(c *gin.Context){
+	er:=o.Logger.Post(Tag,map[string]string{"infunc":GetfuncName(),"atTime":fmt.Sprintf("%v",time.Now().UnixNano()/1e6),"req":fmt.Sprintf("%v",c.Request.URL),"info":fmt.Sprintf("Serving Request")})
+	if er!=nil{
+		log.Printf("error in posting log:%v",er)
+	}
 	value,_:=c.Get("userAuth")
 	userAuth:=value.(*models.UserAuth)
 	var owner models.OwnerReg
@@ -63,9 +79,17 @@ func(o *OwnerController)AddOwner(c *gin.Context){
 	c.JSON(http.StatusOK,gin.H{
 		"msg":"Owners created successfully",
 	})
+	er=o.Logger.Post(Tag,map[string]string{"infunc":GetfuncName(),"atTime":fmt.Sprintf("%v",time.Now().UnixNano()/1e6),"req":fmt.Sprintf("%v",c.Request.URL),"info":fmt.Sprintf("Served")})
+	if er!=nil{
+		log.Printf("error in posting log:%v",er)
+	}
 }
 
 func(o *OwnerController)EditOwner(c *gin.Context){
+	er:=o.Logger.Post(Tag,map[string]string{"infunc":GetfuncName(),"atTime":fmt.Sprintf("%v",time.Now().UnixNano()/1e6),"req":fmt.Sprintf("%v",c.Request.URL),"info":fmt.Sprintf("Serving Request")})
+	if er!=nil{
+		log.Printf("error in posting log:%v",er)
+	}
 	ownerID := c.Param("ownerID")
 	value,_:=c.Get("userAuth")
 	userAuth:=value.(*models.UserAuth)
@@ -107,9 +131,17 @@ func(o *OwnerController)EditOwner(c *gin.Context){
 	c.JSON(http.StatusOK,gin.H{
 		"msg":"Owner updated successfully",
 	})
+	er=o.Logger.Post(Tag,map[string]string{"infunc":GetfuncName(),"atTime":fmt.Sprintf("%v",time.Now().UnixNano()/1e6),"req":fmt.Sprintf("%v",c.Request.URL),"info":fmt.Sprintf("Served")})
+	if er!=nil{
+		log.Printf("error in posting log:%v",er)
+	}
 }
 
 func(o *OwnerController)DeleteOwners(c *gin.Context){
+	er:=o.Logger.Post(Tag,map[string]string{"infunc":GetfuncName(),"atTime":fmt.Sprintf("%v",time.Now().UnixNano()/1e6),"req":fmt.Sprintf("%v",c.Request.URL),"info":fmt.Sprintf("Serving Request")})
+	if er!=nil{
+		log.Printf("error in posting log:%v",er)
+	}
 	value,_:=c.Get("userAuth")
 	userAuth:=value.(*models.UserAuth)
 	var ownerID struct {
@@ -137,4 +169,8 @@ func(o *OwnerController)DeleteOwners(c *gin.Context){
 	c.JSON(http.StatusOK,gin.H{
 		"msg":"Owner deleted successfully",
 	})
+	er=o.Logger.Post(Tag,map[string]string{"infunc":GetfuncName(),"atTime":fmt.Sprintf("%v",time.Now().UnixNano()/1e6),"req":fmt.Sprintf("%v",c.Request.URL),"info":fmt.Sprintf("Served")})
+	if er!=nil{
+		log.Printf("error in posting log:%v",er)
+	}
 }

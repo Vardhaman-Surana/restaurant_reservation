@@ -1,6 +1,8 @@
 package controller
 
 import (
+	"fmt"
+	"github.com/fluent/fluent-logger-golang/fluent"
 	"github.com/gin-gonic/gin"
 	"github.com/go-sql-driver/mysql"
 	"github.com/vds/restaurant_reservation/user_service/pkg/database"
@@ -9,6 +11,7 @@ import (
 	"github.com/vds/restaurant_reservation/user_service/pkg/models"
 	"log"
 	"net/http"
+	"time"
 )
 
 const (
@@ -24,19 +27,29 @@ const (
 )
 type UserController struct{
 	db database.Database
+	Logger *fluent.Fluent
 }
 
-func NewUserController(dbMap database.Database)*UserController{
+func NewUserController(dbMap database.Database,logger *fluent.Fluent)*UserController{
 	uc:=new(UserController)
 	uc.db=dbMap
+	uc.Logger=logger
 	return uc
 }
 
 func (uc *UserController)Register(c *gin.Context){
+	er:=uc.Logger.Post(Tag,map[string]string{"infunc":GetfuncName(),"atTime":fmt.Sprintf("%v",time.Now().UnixNano()/1e6),"req":fmt.Sprintf("%v",c.Request.URL),"info":fmt.Sprintf("Serving Request")})
+	if er!=nil{
+		log.Printf("error in posting log:%v",er)
+	}
 	var user models.User
 	err:=c.ShouldBindJSON(&user)
 	if err!=nil {
 		log.Printf("err is %v",err)
+		er:=uc.Logger.Post(Tag,map[string]string{"infunc":GetfuncName(),"atTime":fmt.Sprintf("%v",time.Now().UnixNano()/1e6),"info":fmt.Sprintf("err is %v",err)})
+		if er!=nil{
+			log.Printf("error in posting log:%v",er)
+		}
 		c.JSON(http.StatusBadRequest, gin.H{
 			"msg":nil,
 			"error": ErrInvalidJsonInput,
@@ -44,7 +57,6 @@ func (uc *UserController)Register(c *gin.Context){
 		return
 	}
 	errMsg:=ErrEmptyFields
-
 	if user.Password==""{
 		errMsg+=" password"
 	}
@@ -64,6 +76,10 @@ func (uc *UserController)Register(c *gin.Context){
 	err=uc.db.InsertUser(&user)
 	if err!=nil{
 		log.Printf("\nError in inserting user in Db : %v\n",err)
+		er:=uc.Logger.Post(Tag,map[string]string{"infunc":GetfuncName(),"atTime":fmt.Sprintf("%v",time.Now().UnixNano()/1e6),"info":fmt.Sprintf("Error in inserting user in Db : %v",err)})
+		if er!=nil{
+			log.Printf("error in posting log:%v",er)
+		}
 		if er, ok := err.(*mysql.MySQLError); ok {
 			if er.Number == 1062 {
 				c.JSON(http.StatusBadRequest, gin.H{
@@ -83,14 +99,25 @@ func (uc *UserController)Register(c *gin.Context){
 		"msg":RegistrationSuccessfulMessage,
 		"error": nil,
 	})
+	er=uc.Logger.Post(Tag,map[string]string{"infunc":GetfuncName(),"atTime":fmt.Sprintf("%v",time.Now().UnixNano()/1e6),"req":fmt.Sprintf("%v",c.Request.URL),"info":fmt.Sprintf("Served")})
+	if er!=nil{
+		log.Printf("error in posting log:%v",er)
+	}
 }
 
 func (uc *UserController)LogIn(c *gin.Context){
+	er:=uc.Logger.Post(Tag,map[string]string{"infunc":GetfuncName(),"atTime":fmt.Sprintf("%v",time.Now().UnixNano()/1e6),"req":fmt.Sprintf("%v",c.Request.URL),"info":fmt.Sprintf("Serving Request")})
+	if er!=nil{
+		log.Printf("error in posting log:%v",er)
+	}
 	var user models.User
-
 	err:=c.ShouldBindJSON(&user)
 	if err!=nil{
 		log.Printf("err is %v",err)
+		er:=uc.Logger.Post(Tag,map[string]string{"infunc":GetfuncName(),"atTime":fmt.Sprintf("%v",time.Now().UnixNano()/1e6),"info":fmt.Sprintf("err is %v",err)})
+		if er!=nil{
+			log.Printf("error in posting log:%v",er)
+		}
 		c.JSON(http.StatusBadRequest, gin.H{
 			"msg":nil,
 			"error": ErrInvalidJsonInput,
@@ -114,6 +141,10 @@ func (uc *UserController)LogIn(c *gin.Context){
 	userOutput,err:=uc.db.GetUser(user.Email)
 	if err!=nil{
 		log.Printf("err is %v",err)
+		er:=uc.Logger.Post(Tag,map[string]string{"infunc":GetfuncName(),"atTime":fmt.Sprintf("%v",time.Now().UnixNano()/1e6),"info":fmt.Sprintf("err is %v",err)})
+		if er!=nil{
+			log.Printf("error in posting log:%v",er)
+		}
 		c.JSON(http.StatusBadRequest, gin.H{
 			"msg":nil,
 			"error": ErrInvalidEmail,
@@ -134,6 +165,10 @@ func (uc *UserController)LogIn(c *gin.Context){
 	token,err:=jwtTokenGenerate.CreateToken(claims)
 	if err!=nil{
 		log.Printf("error in generating token: %v",err)
+		er:=uc.Logger.Post(Tag,map[string]string{"infunc":GetfuncName(),"atTime":fmt.Sprintf("%v",time.Now().UnixNano()/1e6),"info":fmt.Sprintf("error in generating token: %v",err)})
+		if er!=nil{
+			log.Printf("error in posting log:%v",er)
+		}
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"msg":nil,
 			"error": ErrInternal,
@@ -145,10 +180,18 @@ func (uc *UserController)LogIn(c *gin.Context){
 		"msg":LogInSuccessfulMessage,
 		"error": nil,
 	})
+	er=uc.Logger.Post(Tag,map[string]string{"infunc":GetfuncName(),"atTime":fmt.Sprintf("%v",time.Now().UnixNano()/1e6),"req":fmt.Sprintf("%v",c.Request.URL),"info":fmt.Sprintf("Served")})
+	if er!=nil{
+		log.Printf("error in posting log:%v",er)
+	}
 }
 
 
 func(uc *UserController)LogOut(c *gin.Context){
+	er:=uc.Logger.Post(Tag,map[string]string{"infunc":GetfuncName(),"atTime":fmt.Sprintf("%v",time.Now().UnixNano()/1e6),"req":fmt.Sprintf("%v",c.Request.URL),"info":fmt.Sprintf("Serving Request")})
+	if er!=nil{
+		log.Printf("error in posting log:%v",er)
+	}
 	tokenStr:=c.Request.Header.Get("token")
 	if tokenStr==""{
 		c.Status(http.StatusBadRequest)
@@ -164,4 +207,8 @@ func(uc *UserController)LogOut(c *gin.Context){
 		"msg":"Logged Out Successfully",
 		"error":nil,
 	})
+	er=uc.Logger.Post(Tag,map[string]string{"infunc":GetfuncName(),"atTime":fmt.Sprintf("%v",time.Now().UnixNano()/1e6),"req":fmt.Sprintf("%v",c.Request.URL),"info":fmt.Sprintf("Served")})
+	if er!=nil{
+		log.Printf("error in posting log:%v",er)
+	}
 }

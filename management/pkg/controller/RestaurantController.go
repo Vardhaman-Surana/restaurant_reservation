@@ -3,25 +3,34 @@ package controller
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/fluent/fluent-logger-golang/fluent"
 	"github.com/gin-gonic/gin"
 	"github.com/vds/restaurant_reservation/management/pkg/database"
 	"github.com/vds/restaurant_reservation/management/pkg/middleware"
 	"github.com/vds/restaurant_reservation/management/pkg/models"
 	"github.com/vds/restaurant_reservation/management/pkg/queue"
+	"log"
 	"net/http"
+	"time"
 )
 
 type RestaurantController struct{
 	database.Database
+	Logger *fluent.Fluent
 }
 
-func NewRestaurantController(db database.Database) *RestaurantController{
+func NewRestaurantController(db database.Database,logger *fluent.Fluent) *RestaurantController{
 	resController:=new(RestaurantController)
 	resController.Database=db
+	resController.Logger=logger
 	return resController
 }
 
 func(r *RestaurantController)GetNearBy(c *gin.Context){
+	er:=r.Logger.Post(Tag,map[string]string{"infunc":GetfuncName(),"atTime":fmt.Sprintf("%v",time.Now().UnixNano()/1e6),"req":fmt.Sprintf("%v",c.Request.URL),"info":fmt.Sprintf("Serving Request")})
+	if er!=nil{
+		log.Printf("error in posting log:%v",er)
+	}
 	var location models.Location
 	err:=c.ShouldBindJSON(&location)
 	if err!=nil {
@@ -38,9 +47,17 @@ func(r *RestaurantController)GetNearBy(c *gin.Context){
 		_=json.Unmarshal([]byte(stringData),&jsonData)
 	}
 	c.JSON(http.StatusOK,jsonData)
+	er=r.Logger.Post(Tag,map[string]string{"infunc":GetfuncName(),"atTime":fmt.Sprintf("%v",time.Now().UnixNano()/1e6),"req":fmt.Sprintf("%v",c.Request.URL),"info":fmt.Sprintf("Served")})
+	if er!=nil{
+		log.Printf("error in posting log:%v",er)
+	}
 }
 
 func(r *RestaurantController)GetRestaurants(c *gin.Context){
+	er:=r.Logger.Post(Tag,map[string]string{"infunc":GetfuncName(),"atTime":fmt.Sprintf("%v",time.Now().UnixNano()/1e6),"req":fmt.Sprintf("%v",c.Request.URL),"info":fmt.Sprintf("Serving Request")})
+	if er!=nil{
+		log.Printf("error in posting log:%v",er)
+	}
 	value,_:=c.Get("userAuth")
 	userAuth:=value.(*models.UserAuth)
 	jsonData:=&[]models.RestaurantOutput{}
@@ -55,9 +72,17 @@ func(r *RestaurantController)GetRestaurants(c *gin.Context){
 		_=json.Unmarshal([]byte(stringData),jsonData)
 	}
 	c.JSON(http.StatusOK,jsonData)
+	er=r.Logger.Post(Tag,map[string]string{"infunc":GetfuncName(),"atTime":fmt.Sprintf("%v",time.Now().UnixNano()/1e6),"req":fmt.Sprintf("%v",c.Request.URL),"info":fmt.Sprintf("Served")})
+	if er!=nil{
+		log.Printf("error in posting log:%v",er)
+	}
 }
 
 func (r *RestaurantController)AddRestaurant(c *gin.Context){
+	er:=r.Logger.Post(Tag,map[string]string{"infunc":GetfuncName(),"atTime":fmt.Sprintf("%v",time.Now().UnixNano()/1e6),"req":fmt.Sprintf("%v",c.Request.URL),"info":fmt.Sprintf("Serving Request")})
+	if er!=nil{
+		log.Printf("error in posting log:%v",er)
+	}
 	value,_:=c.Get("userAuth")
 	userAuth:=value.(*models.UserAuth)
 	var restaurant models.Restaurant
@@ -76,7 +101,7 @@ func (r *RestaurantController)AddRestaurant(c *gin.Context){
 		return
 	}
 	if numTables:=restaurant.NumTables;numTables!=0{
-		err:=rabbitmq_queue.SendMessage(resId,numTables)
+		err:=rabbitmq_queue.SendMessage(resId,numTables,r.Logger)
 		if err!=nil{
 			c.Status(http.StatusInternalServerError)
 			return
@@ -86,9 +111,17 @@ func (r *RestaurantController)AddRestaurant(c *gin.Context){
 	c.JSON(http.StatusOK,gin.H{
 		"msg":"Restaurant added",
 	})
+	er=r.Logger.Post(Tag,map[string]string{"infunc":GetfuncName(),"atTime":fmt.Sprintf("%v",time.Now().UnixNano()/1e6),"req":fmt.Sprintf("%v",c.Request.URL),"info":fmt.Sprintf("Served")})
+	if er!=nil{
+		log.Printf("error in posting log:%v",er)
+	}
 }
 
 func (r *RestaurantController)EditRestaurant(c *gin.Context){
+	er:=r.Logger.Post(Tag,map[string]string{"infunc":GetfuncName(),"atTime":fmt.Sprintf("%v",time.Now().UnixNano()/1e6),"req":fmt.Sprintf("%v",c.Request.URL),"info":fmt.Sprintf("Serving Request")})
+	if er!=nil{
+		log.Printf("error in posting log:%v",er)
+	}
 	value,_:=c.Get("userAuth")
 	userAuth:=value.(*models.UserAuth)
 	if userAuth.Role!=middleware.Admin && userAuth.Role!=middleware.SuperAdmin{
@@ -117,9 +150,17 @@ func (r *RestaurantController)EditRestaurant(c *gin.Context){
 	c.JSON(http.StatusOK, gin.H{
 		"msg": "Restaurant Updated Successfully",
 	})
+	er=r.Logger.Post(Tag,map[string]string{"infunc":GetfuncName(),"atTime":fmt.Sprintf("%v",time.Now().UnixNano()/1e6),"req":fmt.Sprintf("%v",c.Request.URL),"info":fmt.Sprintf("Served")})
+	if er!=nil{
+		log.Printf("error in posting log:%v",er)
+	}
 }
 
 func (r *RestaurantController)DeleteRestaurants(c *gin.Context){
+	er:=r.Logger.Post(Tag,map[string]string{"infunc":GetfuncName(),"atTime":fmt.Sprintf("%v",time.Now().UnixNano()/1e6),"req":fmt.Sprintf("%v",c.Request.URL),"info":fmt.Sprintf("Serving Request")})
+	if er!=nil{
+		log.Printf("error in posting log:%v",er)
+	}
 	value,_:=c.Get("userAuth")
 	userAuth:=value.(*models.UserAuth)
 	var resID struct {
@@ -146,8 +187,16 @@ func (r *RestaurantController)DeleteRestaurants(c *gin.Context){
 	c.JSON(http.StatusOK, gin.H{
 		"msg": "Restaurants deleted Successfully",
 	})
+	er=r.Logger.Post(Tag,map[string]string{"infunc":GetfuncName(),"atTime":fmt.Sprintf("%v",time.Now().UnixNano()/1e6),"req":fmt.Sprintf("%v",c.Request.URL),"info":fmt.Sprintf("Served")})
+	if er!=nil{
+		log.Printf("error in posting log:%v",er)
+	}
 }
 func(r *RestaurantController)GetOwnerRestaurants(c * gin.Context){
+	er:=r.Logger.Post(Tag,map[string]string{"infunc":GetfuncName(),"atTime":fmt.Sprintf("%v",time.Now().UnixNano()/1e6),"req":fmt.Sprintf("%v",c.Request.URL),"info":fmt.Sprintf("Serving Request")})
+	if er!=nil{
+		log.Printf("error in posting log:%v",er)
+	}
 	ownerID := c.Param("ownerID")
 	value,_:=c.Get("userAuth")
 	userAuth:=value.(*models.UserAuth)
@@ -180,9 +229,17 @@ func(r *RestaurantController)GetOwnerRestaurants(c * gin.Context){
 		_=json.Unmarshal([]byte(stringData),jsonData)
 	}
 	c.JSON(http.StatusOK,jsonData)
+	er=r.Logger.Post(Tag,map[string]string{"infunc":GetfuncName(),"atTime":fmt.Sprintf("%v",time.Now().UnixNano()/1e6),"req":fmt.Sprintf("%v",c.Request.URL),"info":fmt.Sprintf("Served")})
+	if er!=nil{
+		log.Printf("error in posting log:%v",er)
+	}
 }
 
 func (r *RestaurantController)GetAvailableRestaurants(c *gin.Context){
+	er:=r.Logger.Post(Tag,map[string]string{"infunc":GetfuncName(),"atTime":fmt.Sprintf("%v",time.Now().UnixNano()/1e6),"req":fmt.Sprintf("%v",c.Request.URL),"info":fmt.Sprintf("Serving Request")})
+	if er!=nil{
+		log.Printf("error in posting log:%v",er)
+	}
 	value,_:=c.Get("userAuth")
 	userAuth:=value.(*models.UserAuth)
 	jsonData:=&[]models.RestaurantOutput{}
@@ -196,9 +253,17 @@ func (r *RestaurantController)GetAvailableRestaurants(c *gin.Context){
 
 	}
 	c.JSON(http.StatusOK,jsonData)
+	er=r.Logger.Post(Tag,map[string]string{"infunc":GetfuncName(),"atTime":fmt.Sprintf("%v",time.Now().UnixNano()/1e6),"req":fmt.Sprintf("%v",c.Request.URL),"info":fmt.Sprintf("Served")})
+	if er!=nil{
+		log.Printf("error in posting log:%v",er)
+	}
 }
 
 func (r *RestaurantController)AddOwnerForRestaurants(c *gin.Context){
+	er:=r.Logger.Post(Tag,map[string]string{"infunc":GetfuncName(),"atTime":fmt.Sprintf("%v",time.Now().UnixNano()/1e6),"req":fmt.Sprintf("%v",c.Request.URL),"info":fmt.Sprintf("Serving Request")})
+	if er!=nil{
+		log.Printf("error in posting log:%v",er)
+	}
 	ownerID := c.Param("ownerID")
 	value,_:=c.Get("userAuth")
 	userAuth:=value.(*models.UserAuth)
@@ -239,4 +304,8 @@ func (r *RestaurantController)AddOwnerForRestaurants(c *gin.Context){
 	c.JSON(http.StatusOK, gin.H{
 		"msg": "Owner assigned restaurants Successfully",
 	})
+	er=r.Logger.Post(Tag,map[string]string{"infunc":GetfuncName(),"atTime":fmt.Sprintf("%v",time.Now().UnixNano()/1e6),"req":fmt.Sprintf("%v",c.Request.URL),"info":fmt.Sprintf("Served")})
+	if er!=nil{
+		log.Printf("error in posting log:%v",er)
+	}
 }

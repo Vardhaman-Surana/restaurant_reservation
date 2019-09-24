@@ -1,6 +1,7 @@
 package server
 
 import (
+	"github.com/fluent/fluent-logger-golang/fluent"
 	"github.com/gin-gonic/gin"
 	"github.com/vds/restaurant_reservation/management/pkg/controller"
 	"github.com/vds/restaurant_reservation/management/pkg/database"
@@ -10,26 +11,28 @@ import (
 
 type Router struct{
 	db database.Database
+	Logger *fluent.Fluent
 }
 
-func NewRouter(db database.Database)(*Router,error){
+func NewRouter(db database.Database,logger *fluent.Fluent)(*Router,error){
 	router := new(Router)
 	router.db = db
+	router.Logger=logger
 	return router,nil
 }
 func (r *Router)Create() *gin.Engine {
 	ginRouter:=gin.Default()
 
 	//Controllers
-	regController:=controller.NewRegisterController(r.db)
-	loginController:=controller.NewLogInController(r.db)
-	resController:=controller.NewRestaurantController(r.db)
-	menuController:=controller.NewMenuController(r.db)
-	adminController:=controller.NewAdminController(r.db)
-	helloworldController:=controller.NewHelloWorldController(r.db)
+	regController:=controller.NewRegisterController(r.db,r.Logger)
+	loginController:=controller.NewLogInController(r.db,r.Logger)
+	resController:=controller.NewRestaurantController(r.db,r.Logger)
+	menuController:=controller.NewMenuController(r.db,r.Logger)
+	adminController:=controller.NewAdminController(r.db,r.Logger)
+	helloworldController:=controller.NewHelloWorldController(r.db,r.Logger)
 
 
-	ownerController:=controller.NewOwnerController(r.db)
+	ownerController:=controller.NewOwnerController(r.db,r.Logger)
 	//Routes
 	ginRouter.POST("/register",regController.Register)
 	ginRouter.POST("/login",loginController.LogIn)

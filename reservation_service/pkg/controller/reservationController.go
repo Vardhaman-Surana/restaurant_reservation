@@ -2,14 +2,19 @@ package controller
 
 import (
 	"fmt"
+	"github.com/fluent/fluent-logger-golang/fluent"
 	"github.com/gin-gonic/gin"
 	"github.com/vds/restaurant_reservation/reservation_service/pkg/database"
 	"github.com/vds/restaurant_reservation/reservation_service/pkg/middleware"
 	"log"
 	"net/http"
+	"runtime"
 	"strconv"
 	"time"
 )
+
+const Tag = "restaurant.reservation"
+
 
 const(
 	ErrInternal = "internal server error"
@@ -30,15 +35,21 @@ const(
 
 type ReservationController struct{
 	db database.Database
+	Logger *fluent.Fluent
 }
 
-func NewReservationController(db database.Database)*ReservationController{
+func NewReservationController(db database.Database,logger *fluent.Fluent)*ReservationController{
 	resc:=new(ReservationController)
 	resc.db=db
+	resc.Logger=logger
 	return resc
 }
 
 func (rc *ReservationController)CheckAvailability(c *gin.Context) {
+	er:=rc.Logger.Post(Tag,map[string]string{"infunc":GetfuncName(),"atTime":fmt.Sprintf("%v",time.Now().UnixNano()/1e6),"req":fmt.Sprintf("%v",c.Request.URL),"info":fmt.Sprintf("Serving Request")})
+	if er!=nil{
+		log.Printf("error in posting log:%v",er)
+	}
 	resIDString, ok := c.GetQuery(resIDParam)
 	errMsg := ErrQueryParamNotFound
 	if !ok {
@@ -98,9 +109,17 @@ func (rc *ReservationController)CheckAvailability(c *gin.Context) {
 		"msg":   ReservationAvailableMessage+fmt.Sprintf("%d",numTables),
 		"error": nil,
 	})
+	er=rc.Logger.Post(Tag,map[string]string{"infunc":GetfuncName(),"atTime":fmt.Sprintf("%v",time.Now().UnixNano()/1e6),"req":fmt.Sprintf("%v",c.Request.URL),"info":fmt.Sprintf("Served")})
+	if er!=nil{
+		log.Printf("error in posting log:%v",er)
+	}
 }
 
 func (rc *ReservationController)AddReservation(c *gin.Context){
+	er:=rc.Logger.Post(Tag,map[string]string{"infunc":GetfuncName(),"atTime":fmt.Sprintf("%v",time.Now().UnixNano()/1e6),"req":fmt.Sprintf("%v",c.Request.URL),"info":fmt.Sprintf("Serving Request")})
+	if er!=nil{
+		log.Printf("error in posting log:%v",er)
+	}
 	userID,exists:=c.Get(middleware.UserIDContextKey)
 	if !exists{
 		log.Printf("\nDid not get user id in the context got: <%v> instead\n",userID)
@@ -165,4 +184,12 @@ func (rc *ReservationController)AddReservation(c *gin.Context){
 		"error": nil,
 		"resvID":id,
 	})
+	er=rc.Logger.Post(Tag,map[string]string{"infunc":GetfuncName(),"atTime":fmt.Sprintf("%v",time.Now().UnixNano()/1e6),"req":fmt.Sprintf("%v",c.Request.URL),"info":fmt.Sprintf("Served")})
+	if er!=nil{
+		log.Printf("error in posting log:%v",er)
+	}
+}
+func GetfuncName() string {
+	pc, _, _, _ := runtime.Caller(1)
+	return runtime.FuncForPC(pc).Name()
 }

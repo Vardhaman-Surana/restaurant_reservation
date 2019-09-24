@@ -2,12 +2,17 @@ package queue
 
 import (
 	"encoding/json"
+	"fmt"
+	"github.com/fluent/fluent-logger-golang/fluent"
 	"github.com/streadway/amqp"
 	"github.com/vds/restaurant_reservation/reservation_service/pkg/database"
 	"log"
+	"os"
+	"runtime"
 	"sync"
 	"time"
 )
+const Tag = "restaurant.reservation"
 
 type Queue struct{
 	Name string
@@ -22,16 +27,25 @@ var(
 	once     sync.Once
 )
 
-func InitializeQueue(rabbitURL string) *Queue {
+func InitializeQueue(logger *fluent.Fluent) *Queue {
 	uploadNumTables.Name = queueName
+	er:=logger.Post(Tag,map[string]string{"infunc":GetfuncName(),"atTime":fmt.Sprintf("%v",time.Now().UnixNano()/1e6),"req":fmt.Sprintf(""),"info":fmt.Sprintf("Initializing Queue")})
+	if er!=nil{
+		log.Printf("error in posting log:%v",er)
+	}
 	once.Do(func() {
 		log.Println("*********************************")
 		log.Println("Inside Once")
 		log.Println("*********************************")
-		conn := rConnect(rabbitURL)
+		rabbitURL:=os.Getenv("RABBITMQ_URL")
+		conn := rConnect(rabbitURL,logger)
 		if conn==nil{
 			uploadNumTables.Connection=nil
 		}else {
+			er:=logger.Post(Tag,map[string]string{"infunc":GetfuncName(),"atTime":fmt.Sprintf("%v",time.Now().UnixNano()/1e6),"req":fmt.Sprintf(""),"info":fmt.Sprintf("Connection Created")})
+			if er!=nil{
+				log.Printf("error in posting log:%v",er)
+			}
 			log.Println("*********************************")
 			log.Println("Connection Created")
 			log.Println("*********************************")
@@ -41,6 +55,10 @@ func InitializeQueue(rabbitURL string) *Queue {
 			log.Println("*********************************")
 			log.Println("Channel Created")
 			log.Println("*********************************")
+			er=logger.Post(Tag,map[string]string{"infunc":GetfuncName(),"atTime":fmt.Sprintf("%v",time.Now().UnixNano()/1e6),"req":fmt.Sprintf(""),"info":fmt.Sprintf("Channel Created")})
+			if er!=nil{
+				log.Printf("error in posting log:%v",er)
+			}
 			_, err = ch.QueueDeclare(
 				uploadNumTables.Name, // name
 				true,
@@ -52,21 +70,33 @@ func InitializeQueue(rabbitURL string) *Queue {
 			FailOnError(err, "Failed to declare a queue")
 			log.Println("rabbitmq connected")
 			uploadNumTables.Ch = ch
+			er=logger.Post(Tag,map[string]string{"infunc":GetfuncName(),"atTime":fmt.Sprintf("%v",time.Now().UnixNano()/1e6),"req":fmt.Sprintf(""),"info":fmt.Sprintf("Queue Initialized")})
+			if er!=nil{
+				log.Printf("error in posting log:%v",er)
+			}
 		}
 	})
 	return &uploadNumTables
 }
 
-func rConnect(url string) *amqp.Connection {
+func rConnect(url string,logger *fluent.Fluent) *amqp.Connection{
 	log.Println("*********************************")
 	log.Println(" Creating Connection")
 	log.Println("*********************************")
-	log.Printf("the url is %v", url)
+	log.Printf("the url is %v",url)
+	er:=logger.Post(Tag,map[string]string{"infunc":GetfuncName(),"atTime":fmt.Sprintf("%v",time.Now().UnixNano()/1e6),"req":fmt.Sprintf(""),"info":fmt.Sprintf("Creating Connection to url %v",url)})
+	if er!=nil{
+		log.Printf("error in posting log:%v",er)
+	}
 	conn, err := amqp.Dial(url)
 	if err != nil {
 		log.Printf("trying to reconnect")
+		er:=logger.Post(Tag,map[string]string{"infunc":GetfuncName(),"atTime":fmt.Sprintf("%v",time.Now().UnixNano()/1e6),"req":fmt.Sprintf(""),"info":fmt.Sprintf("trying to reconnect to url %v",url)})
+		if er!=nil{
+			log.Printf("error in posting log:%v",er)
+		}
 		time.Sleep(5 * time.Second)
-		return rConnect(url)
+		return rConnect(url,logger)
 	}
 	return conn
 }
@@ -120,4 +150,7 @@ func Close(){
 		log.Println("queue closed")
 	}
 }
-
+func GetfuncName() string {
+	pc, _, _, _ := runtime.Caller(1)
+	return runtime.FuncForPC(pc).Name()
+}

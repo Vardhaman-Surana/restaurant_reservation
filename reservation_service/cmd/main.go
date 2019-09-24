@@ -1,6 +1,7 @@
 package main
 
 import (
+	"github.com/fluent/fluent-logger-golang/fluent"
 	"github.com/vds/restaurant_reservation/reservation_service/pkg/database/mysql"
 	"github.com/vds/restaurant_reservation/reservation_service/pkg/queue"
 	"github.com/vds/restaurant_reservation/reservation_service/pkg/server"
@@ -13,12 +14,11 @@ import (
 func main() {
 	port := os.Getenv("PORT")
 	dbURL := os.Getenv("DBURL")
-	RabbitURL:=os.Getenv("RABBITMQ_URL")
 	log.SetFlags(log.LstdFlags | log.Lmicroseconds)
 	/*
 	Testing log output in a file
 	 */
-	f, err := os.OpenFile("/Users/vds/reservationService.log", os.O_RDWR | os.O_CREATE | os.O_APPEND, 0666)
+	/*f, err := os.OpenFile("/Users/vds/reservationService.log", os.O_RDWR | os.O_CREATE | os.O_APPEND, 0666)
 	if err != nil {
 		log.Fatalf("error opening file: %v", err)
 	}
@@ -26,9 +26,16 @@ func main() {
 
 	log.SetOutput(f)
 
+	*/
 
+	// using fluent logger
+	logger, err := fluent.New(fluent.Config{FluentPort: 24224, FluentHost: "127.0.0.1"})
+	if err != nil {
+		log.Println(err)
+	}
+	defer logger.Close()
 
-	_=queue.InitializeQueue(RabbitURL)
+	_=queue.InitializeQueue(logger)
 	dbMap, err := mysql.NewMysqlDbMap(dbURL)
 	if err != nil {
 		log.Fatalf("error initiating the db map:%v", err)
@@ -42,7 +49,7 @@ func main() {
 	}()
 
 
-	s, err := server.NewServer(dbMap)
+	s, err := server.NewServer(dbMap,logger)
 	if err != nil {
 		panic(err)
 	}

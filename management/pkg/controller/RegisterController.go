@@ -2,26 +2,35 @@ package controller
 
 import (
 	"fmt"
+	"github.com/fluent/fluent-logger-golang/fluent"
 	"github.com/gin-gonic/gin"
 	"github.com/vds/restaurant_reservation/management/pkg/database"
 	"github.com/vds/restaurant_reservation/management/pkg/middleware"
 	"github.com/vds/restaurant_reservation/management/pkg/models"
+	"log"
 	"net/http"
+	"time"
 )
 
 const ErrJsonInput="Invalid Json Input"
 
 type RegisterController struct{
 	database.Database
+	Logger *fluent.Fluent
 }
 
-func NewRegisterController(db database.Database) *RegisterController{
+func NewRegisterController(db database.Database,logger *fluent.Fluent) *RegisterController{
 	regController:=new(RegisterController)
 	regController.Database=db
+	regController.Logger=logger
 	return regController
 }
 
 func(r *RegisterController)Register(c *gin.Context){
+	er:=r.Logger.Post(Tag,map[string]string{"infunc":GetfuncName(),"atTime":fmt.Sprintf("%v",time.Now().UnixNano()/1e6),"req":fmt.Sprintf("%v",c.Request.URL),"info":fmt.Sprintf("Serving Request")})
+	if er!=nil{
+		log.Printf("error in posting log:%v",er)
+	}
 	var user models.UserReg
 	err:=c.ShouldBindJSON(&user)
 	if err!=nil {
@@ -53,4 +62,8 @@ func(r *RegisterController)Register(c *gin.Context){
 		"msg":"Registration Successful",
 		"status":Success,
 	})
+	er=r.Logger.Post(Tag,map[string]string{"infunc":GetfuncName(),"atTime":fmt.Sprintf("%v",time.Now().UnixNano()/1e6),"req":fmt.Sprintf("%v",c.Request.URL),"info":fmt.Sprintf("Served")})
+	if er!=nil{
+		log.Printf("error in posting log:%v",er)
+	}
 }

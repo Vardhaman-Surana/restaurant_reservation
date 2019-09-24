@@ -7,6 +7,7 @@ import (
 	"log"
 	"os"
 	"os/signal"
+	"github.com/fluent/fluent-logger-golang/fluent"
 )
 
 func main() {
@@ -16,16 +17,21 @@ func main() {
 	/*
 	testing log file entry
 	 */
-	f, err := os.OpenFile("/Users/vds/management.log", os.O_RDWR | os.O_CREATE | os.O_APPEND, 0666)
+	/*f, err := os.OpenFile("/Users/vds/management.log", os.O_RDWR | os.O_CREATE | os.O_APPEND, 0666)
 	if err != nil {
 		log.Fatalf("error opening file: %v", err)
 	}
 	defer f.Close()
 
 	log.SetOutput(f)
+	 */
 
-
-
+	// using fluent logger
+	logger, err := fluent.New(fluent.Config{FluentPort: 24224, FluentHost: "127.0.0.1"})
+	if err != nil {
+		log.Println(err)
+	}
+	defer logger.Close()
 	// create database instance
 	// when not using db4free the restaurant
 	db, err := mysql.NewMySqlDB(dbURL)
@@ -33,10 +39,10 @@ func main() {
 		panic(err)
 	}
 
-	_=rabbitmq_queue.InitializeQueue()
+	_=rabbitmq_queue.InitializeQueue(logger)
 
 	// create server
-	s, err := server.NewServer(db)
+	s, err := server.NewServer(db,logger)
 	if err != nil {
 		panic(err)
 	}
