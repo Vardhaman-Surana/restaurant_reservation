@@ -1,14 +1,19 @@
 package controller
 
 import (
+	"context"
 	"github.com/gin-gonic/gin"
 	"github.com/go-sql-driver/mysql"
+	"github.com/google/uuid"
+	"github.com/opentracing/opentracing-go"
 	"github.com/vds/restaurant_reservation/user_service/pkg/database"
 	"github.com/vds/restaurant_reservation/user_service/pkg/encryption"
 	"github.com/vds/restaurant_reservation/user_service/pkg/jwtTokenGenerate"
 	"github.com/vds/restaurant_reservation/user_service/pkg/models"
+	"github.com/vds/restaurant_reservation/user_service/pkg/tracing"
 	"log"
 	"net/http"
+	"time"
 )
 
 const (
@@ -21,18 +26,31 @@ const (
 
 	LogInSuccessfulMessage="LogIn Successful"
 	RegistrationSuccessfulMessage="User Registration Successful"
-)
+
+	)
 type UserController struct{
 	db database.Database
+	tracer opentracing.Tracer
 }
 
-func NewUserController(dbMap database.Database)*UserController{
+func NewUserController(dbMap database.Database,	tracer opentracing.Tracer)*UserController{
 	uc:=new(UserController)
 	uc.db=dbMap
+	uc.tracer=tracer
 	return uc
 }
 
 func (uc *UserController)Register(c *gin.Context){
+	opentracing.SetGlobalTracer(uc.tracer)
+	span, newCtx := opentracing.StartSpanFromContext(c, "user_register")
+	span.SetBaggageItem("requestID", uuid.New().String())
+	span.SetBaggageItem("requestUrl",c.Request.URL.String())
+	span.SetTag("funcName","Register")
+	span.SetTag("serviceName",tracing.ServiceName)
+	span.SetTag("startTime",time.Now().String())
+	defer span.Finish()
+
+
 	var user models.User
 	err:=c.ShouldBindJSON(&user)
 	if err!=nil {
@@ -61,7 +79,7 @@ func (uc *UserController)Register(c *gin.Context){
 		})
 		return
 	}
-	err=uc.db.InsertUser(&user)
+	err=uc.db.InsertUser(newCtx,&user)
 	if err!=nil{
 		log.Printf("\nError in inserting user in Db : %v\n",err)
 		if er, ok := err.(*mysql.MySQLError); ok {
@@ -86,6 +104,15 @@ func (uc *UserController)Register(c *gin.Context){
 }
 
 func (uc *UserController)LogIn(c *gin.Context){
+	opentracing.SetGlobalTracer(uc.tracer)
+	span, newCtx := opentracing.StartSpanFromContext(c, "user_login")
+	span.SetBaggageItem("requestID", uuid.New().String())
+	span.SetBaggageItem("requestUrl",c.Request.URL.String())
+	span.SetTag("funcName","LogIn")
+	span.SetTag("serviceName",tracing.ServiceName)
+	span.SetTag("startTime",time.Now().String())
+	defer span.Finish()
+
 	var user models.User
 
 	err:=c.ShouldBindJSON(&user)
@@ -111,7 +138,7 @@ func (uc *UserController)LogIn(c *gin.Context){
 		})
 		return
 	}
-	userOutput,err:=uc.db.GetUser(user.Email)
+	userOutput,err:=uc.db.GetUser(newCtx,user.Email)
 	if err!=nil{
 		log.Printf("err is %v",err)
 		c.JSON(http.StatusBadRequest, gin.H{
@@ -149,17 +176,27 @@ func (uc *UserController)LogIn(c *gin.Context){
 
 
 func(uc *UserController)LogOut(c *gin.Context){
+	prevContext,_:=c.Get("context")
+	prevCtx:=prevContext.(context.Context)
+	span, newCtx := opentracing.StartSpanFromContext(prevCtx, "user_logout")
+	span.SetBaggageItem("requestID", uuid.New().String())
+	span.SetBaggageItem("requestUrl",c.Request.URL.String())
+	span.SetTag("serviceName",tracing.ServiceName)
+	span.SetTag("funcName","LogOut")
+	span.SetTag("startTime",time.Now().String())
+	defer span.Finish()
+
 	tokenStr:=c.Request.Header.Get("token")
 	if tokenStr==""{
 		c.Status(http.StatusBadRequest)
 		return
 	}
-	err:=uc.db.StoreToken(tokenStr)
+	err:=uc.db.StoreToken(newCtx,tokenStr)
 	if err!=nil{
 		c.Status(http.StatusInternalServerError)
 		return
 	}
-	go uc.db.DeleteExpiredToken(tokenStr,jwtTokenGenerate.ExpireDuration)
+	go uc.db.DeleteExpiredToken(newCtx,tokenStr,jwtTokenGenerate.ExpireDuration)
 	c.JSON(http.StatusOK,gin.H{
 		"msg":"Logged Out Successfully",
 		"error":nil,

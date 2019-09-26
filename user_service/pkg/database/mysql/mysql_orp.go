@@ -1,6 +1,7 @@
 package mysql
 
 import (
+	"context"
 	"database/sql"
 	_ "github.com/go-sql-driver/mysql"
 	_ "github.com/rubenv/sql-migrate"
@@ -48,7 +49,7 @@ func DBForURL(url string)(*gorp.DbMap,error){
 }
 
 
-func (mdb *MysqlDbMap)GetUser(email string)(*models.User,error){
+func (mdb *MysqlDbMap)GetUser(ctx context.Context,email string)(*models.User,error){
 	var userOutput models.User
 	err:=mdb.DbMap.SelectOne(&userOutput,`SELECT * FROM users WHERE Email=?`,email)
 	if err!=nil{
@@ -56,7 +57,7 @@ func (mdb *MysqlDbMap)GetUser(email string)(*models.User,error){
 	}
 	return &userOutput,err
 }
-func (mdb *MysqlDbMap)GetRestaurants()([]models.RestaurantOutput,error){
+func (mdb *MysqlDbMap)GetRestaurants(ctx context.Context)([]models.RestaurantOutput,error){
 	var restaurants []models.RestaurantOutput
 	_,err:=mdb.DbMap.Select(&restaurants,"SELECT id,name,lat,lng from restaurants")
 	if err!=nil{
@@ -65,7 +66,7 @@ func (mdb *MysqlDbMap)GetRestaurants()([]models.RestaurantOutput,error){
 	return restaurants,nil
 }
 
-func (mdb *MysqlDbMap)InsertUser(user *models.User)error{
+func (mdb *MysqlDbMap)InsertUser(ctx context.Context,user *models.User)error{
 	err:=mdb.DbMap.Insert(user)
 	if err!=nil{
 		return err
@@ -73,7 +74,7 @@ func (mdb *MysqlDbMap)InsertUser(user *models.User)error{
 	return nil
 }
 
-func(db *MysqlDbMap)StoreToken(token string)error{
+func(db *MysqlDbMap)StoreToken(ctx context.Context,token string)error{
 	_,err:=db.DbMap.Exec("insert into invalid_tokens(token) values(?)",token)
 	if err!=nil{
 		log.Println(err)
@@ -81,21 +82,24 @@ func(db *MysqlDbMap)StoreToken(token string)error{
 	}
 	return nil
 }
-func (db *MysqlDbMap)DeleteExpiredToken(token string,t time.Duration){
+func (db *MysqlDbMap)DeleteExpiredToken(ctx context.Context,token string,t time.Duration){
 	time.Sleep(t)
 	_,err:=db.DbMap.Exec("delete from invalid_tokens where token=?",token)
 	if err!=nil{
 		log.Printf("Error in deleting the invalid token:%v",err)
 	}
 }
-func(db *MysqlDbMap)VerifyToken(tokenIn string)bool{
-	var tokenOut string
-	err:=db.DbMap.SelectOne(&tokenOut,"select token from invalid_tokens where token=?",tokenIn)
+func(db *MysqlDbMap)VerifyToken(ctx context.Context,tokenIn string)bool{
+	var tokenOut struct{
+		token string
+	}
+
+	_,err:=db.DbMap.Select(&tokenOut,"select token from invalid_tokens where token=?",tokenIn)
 	if err!=nil{
 		log.Println(err)
 		return false
 	}
-	if tokenOut==""{
+	if tokenOut.token==""{
 		return true
 	}
 	return false

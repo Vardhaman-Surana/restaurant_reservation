@@ -8,7 +8,9 @@ import (
 	"io"
 )
 
-func Init(service string) (opentracing.Tracer, io.Closer) {
+const ServiceName = "userSvc"
+
+func InitTracer(service string) (opentracing.Tracer, io.Closer) {
 	cfg := &config.Configuration{
 		Sampler: &config.SamplerConfig{
 			Type:  "const",
