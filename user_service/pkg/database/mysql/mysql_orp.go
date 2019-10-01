@@ -3,11 +3,14 @@ package mysql
 import (
 	"context"
 	"database/sql"
+	"fmt"
 	_ "github.com/go-sql-driver/mysql"
+	logot "github.com/opentracing/opentracing-go/log"
 	_ "github.com/rubenv/sql-migrate"
 	migrate "github.com/rubenv/sql-migrate"
 	"github.com/vds/restaurant_reservation/user_service/pkg/migrations"
 	"github.com/vds/restaurant_reservation/user_service/pkg/models"
+	"github.com/vds/restaurant_reservation/user_service/pkg/tracing"
 	"gopkg.in/gorp.v1"
 	"log"
 	"strings"
@@ -49,58 +52,81 @@ func DBForURL(url string)(*gorp.DbMap,error){
 }
 
 
-func (mdb *MysqlDbMap)GetUser(ctx context.Context,email string)(*models.User,error){
+func (mdb *MysqlDbMap)GetUser(ctx context.Context,email string)(context.Context,*models.User,error){
+	span,newCtx:=tracing.GetSpanFromContext(ctx,"get_user_from_db")
+	defer span.Finish()
+	tags:=tracing.TraceTags{FuncName:"GetUser",ServiceName:tracing.ServiceName,RequestID:span.BaggageItem("requestID")}
+	tracing.SetTags(span,tags)
 	var userOutput models.User
 	err:=mdb.DbMap.SelectOne(&userOutput,`SELECT * FROM users WHERE Email=?`,email)
 	if err!=nil{
-		return nil,err
+		return newCtx,nil,err
 	}
-	return &userOutput,err
+	return newCtx,&userOutput,err
 }
-func (mdb *MysqlDbMap)GetRestaurants(ctx context.Context)([]models.RestaurantOutput,error){
+func (mdb *MysqlDbMap)SelectRestaurants(ctx context.Context)(context.Context,[]models.RestaurantOutput,error){
+	span,newCtx:=tracing.GetSpanFromContext(ctx,"get_restaurants_db")
+	defer span.Finish()
+	tags:=tracing.TraceTags{FuncName:"SelectRestaurants",ServiceName:tracing.ServiceName,RequestID:span.BaggageItem("requestID")}
+	tracing.SetTags(span,tags)
 	var restaurants []models.RestaurantOutput
 	_,err:=mdb.DbMap.Select(&restaurants,"SELECT id,name,lat,lng from restaurants")
 	if err!=nil{
-		return nil,err
+		return newCtx,nil,err
 	}
-	return restaurants,nil
+	return newCtx,restaurants,nil
 }
 
-func (mdb *MysqlDbMap)InsertUser(ctx context.Context,user *models.User)error{
+func (mdb *MysqlDbMap)CreateUser(ctx context.Context,user *models.User)(context.Context,error){
+	span,newCtx:=tracing.GetSpanFromContext(ctx,"InsertUserDb")
+	defer span.Finish()
+	tags:=tracing.TraceTags{FuncName:"CreateUser",ServiceName:tracing.ServiceName,RequestID:span.BaggageItem("requestID")}
+	tracing.SetTags(span,tags)
 	err:=mdb.DbMap.Insert(user)
 	if err!=nil{
-		return err
+		return newCtx,err
 	}
-	return nil
+	return newCtx,nil
 }
 
-func(db *MysqlDbMap)StoreToken(ctx context.Context,token string)error{
+func(db *MysqlDbMap)StoreToken(ctx context.Context,token string)(context.Context,error){
+	span, newCtx := tracing.GetSpanFromContext(ctx, "db_insert_logout_token")
+	defer span.Finish()
+	tags:=tracing.TraceTags{FuncName:"StoreToken",ServiceName:tracing.ServiceName,RequestID:span.BaggageItem("requestID")}
+	tracing.SetTags(span,tags)
 	_,err:=db.DbMap.Exec("insert into invalid_tokens(token) values(?)",token)
 	if err!=nil{
 		log.Println(err)
-		return err
+		return newCtx,err
 	}
-	return nil
+	return newCtx,nil
 }
 func (db *MysqlDbMap)DeleteExpiredToken(ctx context.Context,token string,t time.Duration){
+	span, _ := tracing.GetSpanFromContext(ctx, "db_delete_expire_token")
+	defer span.Finish()
+	tags:=tracing.TraceTags{FuncName:"DeleteExpiredToken",ServiceName:tracing.ServiceName,RequestID:span.BaggageItem("requestID")}
+	tracing.SetTags(span,tags)
 	time.Sleep(t)
 	_,err:=db.DbMap.Exec("delete from invalid_tokens where token=?",token)
 	if err!=nil{
 		log.Printf("Error in deleting the invalid token:%v",err)
 	}
 }
-func(db *MysqlDbMap)VerifyToken(ctx context.Context,tokenIn string)bool{
-	var tokenOut struct{
-		token string
-	}
-
-	_,err:=db.DbMap.Select(&tokenOut,"select token from invalid_tokens where token=?",tokenIn)
+func(db *MysqlDbMap)VerifyToken(ctx context.Context,tokenIn string)(context.Context,bool){
+	span,newCtx:=tracing.GetSpanFromContext(ctx,"checkInvalidToken")
+	defer span.Finish()
+	tags:=tracing.TraceTags{FuncName:"VerifyToken",ServiceName:tracing.ServiceName,RequestID:span.BaggageItem("requestID")}
+	tracing.SetTags(span,tags)
+	count,err:=db.DbMap.SelectInt(fmt.Sprintf(`select count(*) from invalid_tokens where token="%s"`,tokenIn))
 	if err!=nil{
 		log.Println(err)
-		return false
+		span.LogFields(
+			logot.String("error",err.Error()),
+			)
+		return newCtx,false
 	}
-	if tokenOut.token==""{
-		return true
+	if count==0{
+		return newCtx,true
 	}
-	return false
+	return newCtx,false
 }

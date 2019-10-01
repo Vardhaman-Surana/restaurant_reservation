@@ -1,16 +1,14 @@
 package middleware
 
 import (
+	"context"
 	"github.com/dgrijalva/jwt-go"
 	"github.com/gin-gonic/gin"
-	"github.com/google/uuid"
-	"github.com/opentracing/opentracing-go"
 	"github.com/vds/restaurant_reservation/user_service/pkg/models"
 	"github.com/vds/restaurant_reservation/user_service/pkg/tracing"
 	"log"
 	"net/http"
 	"strings"
-	"time"
 )
 
 const(
@@ -18,18 +16,16 @@ const(
 	UserIDContextKey= "userID"
 	)
 
-func AuthMiddleware(tracer opentracing.Tracer) gin.HandlerFunc{
+func AuthMiddleware() gin.HandlerFunc{
 
 	return func(c *gin.Context){
-		opentracing.SetGlobalTracer(tracer)
-		span, newCtx := opentracing.StartSpanFromContext(c, "user_authentication")
-		span.SetBaggageItem("requestID", uuid.New().String())
-		span.SetBaggageItem("requestUrl",c.Request.URL.String())
-		span.SetTag("funcName","AuthMiddleware")
-		span.SetTag("serviceName",tracing.ServiceName)
-		span.SetTag("startTime",time.Now().String())
+		prevContext,_:=c.Get("context")
+		prevCtx:=prevContext.(context.Context)
+		span,newCtx:=tracing.GetSpanFromContext(prevCtx,"authentication")
 		defer span.Finish()
 
+		tags:=tracing.TraceTags{FuncName:"AuthMiddleware",ServiceName:tracing.ServiceName,RequestID:span.BaggageItem("requestID")}
+		tracing.SetTags(span,tags)
 		jwtKey:=[]byte("SecretKey")
 		tokenStr:=c.Request.Header.Get("token")
 		claims:=&models.Claims{}
@@ -60,7 +56,6 @@ func AuthMiddleware(tracer opentracing.Tracer) gin.HandlerFunc{
 		c.Set("context",newCtx)
 		c.Next()
 	}
-
-
-
 }
+
+

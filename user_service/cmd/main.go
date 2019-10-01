@@ -8,20 +8,21 @@ import (
 	"os"
 )
 
-const ServiceName = "userSvc"
 
 func main() {
 
 	port:=os.Getenv("PORT")
 	dbURL:=os.Getenv("DBURL")
 
+	tracer,closer:=tracing.NewTracer(tracing.ServiceName)
+	defer closer.Close()
+
 
 	dbMap,err:= mysql.NewMysqlDbMap(dbURL)
 	if err!=nil{
 		log.Fatalf("error initiating the db map:%v",err)
 	}
-	tracer,closer:=tracing.InitTracer(ServiceName)
-	defer closer.Close()
+
 
 	// create server
 	s, err := server.NewServer(dbMap,tracer)

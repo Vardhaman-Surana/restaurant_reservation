@@ -1,33 +1,30 @@
 package middleware
 
 import (
+	"context"
 	"github.com/gin-gonic/gin"
-	"github.com/google/uuid"
 	"github.com/opentracing/opentracing-go"
 	"github.com/vds/restaurant_reservation/user_service/pkg/database"
 	"github.com/vds/restaurant_reservation/user_service/pkg/tracing"
 	"net/http"
-	"time"
 )
 
-func TokenValidator(tracer opentracing.Tracer,db database.Database) gin.HandlerFunc{
+func TokenValidator(db database.Database) gin.HandlerFunc{
 	return func(c *gin.Context){
-		opentracing.SetGlobalTracer(tracer)
-		span, newCtx := opentracing.StartSpanFromContext(c, "user_authentication")
-		span.SetBaggageItem("requestID", uuid.New().String())
-		span.SetBaggageItem("requestUrl",c.Request.URL.String())
-		span.SetTag("funcName","AuthMiddleware")
-		span.SetTag("serviceName",tracing.ServiceName)
-		span.SetTag("startTime",time.Now().String())
+		prevContext,_:=c.Get("context")
+		prevCtx:=prevContext.(context.Context)
+		span,newCtx:=opentracing.StartSpanFromContext(prevCtx,"token_validation")
 		defer span.Finish()
+		tags:=tracing.TraceTags{FuncName:"TokenValidator",ServiceName:tracing.ServiceName,RequestID:span.BaggageItem("requestID")}
+		tracing.SetTags(span,tags)
 
 		tokenStr:=c.Request.Header.Get("token")
-		isValid:=db.VerifyToken(newCtx,tokenStr)
+		verifyTokenCtx,isValid:=db.VerifyToken(newCtx,tokenStr)
 		if !isValid{
 			c.AbortWithStatus(http.StatusUnauthorized)
 			c.Abort()
 		}
-		c.Set("context",newCtx)
+		c.Set("context",verifyTokenCtx)
 		c.Next()
 	}
 }

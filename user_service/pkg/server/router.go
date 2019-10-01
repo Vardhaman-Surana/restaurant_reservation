@@ -20,19 +20,21 @@ func NewRouter(db database.Database,tracer opentracing.Tracer)(*Router,error){
 	return router,nil
 }
 func (r *Router)Create() *gin.Engine {
-	uc:=controller.NewUserController(r.DB,r.Tracer)
-	resc:=controller.NewRestaurantController(r.DB,r.Tracer)
+	uc:=controller.NewUserController(r.DB)
+	resc:=controller.NewRestaurantController(r.DB)
 	ginRouter:=gin.Default()
+	ginRouter.Use(middleware.InitTrace(r.Tracer))
 
 	ginRouter.POST("/register",uc.Register)
 	ginRouter.POST("/login",uc.LogIn)
-	ginRouter.GET("/logout",uc.LogOut)
 
 
 	grp:=ginRouter.Group("/")
-	grp.Use(middleware.TokenValidator(r.Tracer,r.DB),middleware.AuthMiddleware(r.Tracer))
+	grp.Use(middleware.TokenValidator(r.DB),middleware.AuthMiddleware())
 	{
 		grp.GET("/restaurants", resc.GetRestaurants)
+		grp.GET("/logout",uc.LogOut)
+
 	}
 
 	return ginRouter

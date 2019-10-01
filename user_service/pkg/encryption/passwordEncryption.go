@@ -1,7 +1,9 @@
 package encryption
 
 import (
+	"context"
 	"errors"
+	"github.com/vds/restaurant_reservation/user_service/pkg/tracing"
 	"golang.org/x/crypto/bcrypt"
 )
 
@@ -15,10 +17,15 @@ func GenerateHash(value string) (string, error) {
 	}
 	return string(hash), nil
 }
-func IsCorrectPassword(phash ,pass string)bool{
+func IsCorrectPassword(ctx context.Context,phash ,pass string)(context.Context,bool){
+	span, newCtx :=tracing.GetSpanFromContext(ctx,"match_password")
+	defer span.Finish()
+	tags:=tracing.TraceTags{FuncName:"IsCorrectPassword",ServiceName:tracing.ServiceName,RequestID:span.BaggageItem("requestID")}
+	tracing.SetTags(span,tags)
+
 	err:=bcrypt.CompareHashAndPassword([]byte(phash),[]byte(pass))
 	if err!=nil{
-		return false
+		return newCtx,false
 	}
-	return true
+	return newCtx,true
 }
