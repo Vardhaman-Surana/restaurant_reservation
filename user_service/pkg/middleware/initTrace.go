@@ -2,14 +2,16 @@ package middleware
 
 import (
 	"context"
-	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
+	"github.com/gorilla/mux"
 	"github.com/opentracing/opentracing-go"
 	"github.com/vds/restaurant_reservation/user_service/pkg/tracing"
+	"net/http"
 )
 
-func InitTrace(tracer opentracing.Tracer) gin.HandlerFunc{
-	return func(c *gin.Context){
+func InitTrace(tracer opentracing.Tracer) mux.MiddlewareFunc{
+	return func(next http.Handler)http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, rq *http.Request) {
 		opentracing.SetGlobalTracer(tracer)
 		reqID:=uuid.New().String()
 		span:= tracer.StartSpan("initializing_trace")
@@ -21,7 +23,8 @@ func InitTrace(tracer opentracing.Tracer) gin.HandlerFunc{
 		span.SetBaggageItem("requestID",reqID)
 		currSpanCtx := context.Background()
 		currSpanCtx=opentracing.ContextWithSpan(currSpanCtx,span)
-		c.Set("context",currSpanCtx)
-		c.Next()
-	}
+		reqContext:=context.WithValue(rq.Context(),"context",currSpanCtx)
+		w.Header().Set("Content-Type","application/json")
+		next.ServeHTTP(w, rq.WithContext(reqContext))
+	})}
 }

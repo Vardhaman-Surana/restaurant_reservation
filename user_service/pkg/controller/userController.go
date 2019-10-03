@@ -2,7 +2,7 @@ package controller
 
 import (
 	"context"
-	"github.com/gin-gonic/gin"
+	"encoding/json"
 	"github.com/go-sql-driver/mysql"
 	"github.com/vds/restaurant_reservation/user_service/pkg/database"
 	"github.com/vds/restaurant_reservation/user_service/pkg/encryption"
@@ -35,8 +35,8 @@ func NewUserController(dbMap database.Database)*UserController{
 	return uc
 }
 
-func (uc *UserController)Register(c *gin.Context){
-	prevContext,_:=c.Get("context")
+func (uc *UserController)Register(w http.ResponseWriter,rq *http.Request){
+	prevContext:=rq.Context().Value("context")
 	prevCtx:=prevContext.(context.Context)
 	span,newCtx:=tracing.GetSpanFromContext(prevCtx,"user_registration")
 	defer span.Finish()
@@ -45,10 +45,10 @@ func (uc *UserController)Register(c *gin.Context){
 
 
 	var user models.User
-	err:=c.ShouldBindJSON(&user)
+	err:=json.NewDecoder(rq.Body).Decode(&user)
 	if err!=nil {
 		log.Printf("err is %v",err)
-		c.JSON(http.StatusBadRequest, gin.H{
+		models.WriteToResponse(w,http.StatusBadRequest, &models.DefaultMap{
 			"msg":nil,
 			"error": ErrInvalidJsonInput,
 		})
@@ -66,7 +66,7 @@ func (uc *UserController)Register(c *gin.Context){
 		errMsg+=" name"
 	}
 	if errMsg!=ErrEmptyFields{
-		c.JSON(http.StatusBadRequest, gin.H{
+		models.WriteToResponse(w,http.StatusBadRequest, &models.DefaultMap{
 			"msg":nil,
 			"error": errMsg,
 		})
@@ -77,27 +77,27 @@ func (uc *UserController)Register(c *gin.Context){
 		log.Printf("\nError in inserting user in Db : %v\n",err)
 		if er, ok := err.(*mysql.MySQLError); ok {
 			if er.Number == 1062 {
-				c.JSON(http.StatusBadRequest, gin.H{
+				models.WriteToResponse(w,http.StatusBadRequest, &models.DefaultMap{
 					"msg":nil,
 					"error": ErrDupMail,
 				})
 				return
 			}
 		}
-		c.JSON(http.StatusInternalServerError, gin.H{
+		models.WriteToResponse(w,http.StatusInternalServerError, &models.DefaultMap{
 			"msg":nil,
 			"error": ErrInternal,
 		})
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{
+	models.WriteToResponse(w,http.StatusOK, &models.DefaultMap{
 		"msg":RegistrationSuccessfulMessage,
 		"error": nil,
 	})
 }
 
-func (uc *UserController)LogIn(c *gin.Context){
-	prevContext,_:=c.Get("context")
+func (uc *UserController)LogIn(w http.ResponseWriter,rq *http.Request){
+	prevContext:=rq.Context().Value("context")
 	prevCtx:=prevContext.(context.Context)
 	span,newCtx:=tracing.GetSpanFromContext(prevCtx,"user_login")
 	defer span.Finish()
@@ -106,10 +106,10 @@ func (uc *UserController)LogIn(c *gin.Context){
 
 	var user models.User
 
-	err:=c.ShouldBindJSON(&user)
+	err:=json.NewDecoder(rq.Body).Decode(&user)
 	if err!=nil{
 		log.Printf("err is %v",err)
-		c.JSON(http.StatusBadRequest, gin.H{
+		models.WriteToResponse(w,http.StatusBadRequest, &models.DefaultMap{
 			"msg":nil,
 			"error": ErrInvalidJsonInput,
 		})
@@ -123,7 +123,7 @@ func (uc *UserController)LogIn(c *gin.Context){
 		errMsg+=" email"
 	}
 	if errMsg!=ErrEmptyFields{
-		c.JSON(http.StatusBadRequest, gin.H{
+		models.WriteToResponse(w,http.StatusBadRequest, &models.DefaultMap{
 			"msg":nil,
 			"error": errMsg,
 		})
@@ -132,7 +132,7 @@ func (uc *UserController)LogIn(c *gin.Context){
 	getUserCtx,userOutput,err:=uc.db.GetUser(newCtx,user.Email)
 	if err!=nil{
 		log.Printf("err is %v",err)
-		c.JSON(http.StatusBadRequest, gin.H{
+		models.WriteToResponse(w,http.StatusBadRequest, &models.DefaultMap{
 			"msg":nil,
 			"error": ErrInvalidEmail,
 		})
@@ -140,7 +140,7 @@ func (uc *UserController)LogIn(c *gin.Context){
 	}
 	matchPassCtx,isCorrect:=encryption.IsCorrectPassword(getUserCtx,userOutput.PasswordHash,user.Password)
 	if !isCorrect{
-		c.JSON(http.StatusUnauthorized, gin.H{
+		models.WriteToResponse(w,http.StatusUnauthorized, &models.DefaultMap{
 			"msg":nil,
 			"error": ErrInCorrectPassword,
 		})
@@ -152,40 +152,40 @@ func (uc *UserController)LogIn(c *gin.Context){
 	_,token,err:=jwtTokenGenerate.CreateToken(matchPassCtx,claims)
 	if err!=nil{
 		log.Printf("error in generating token: %v",err)
-		c.JSON(http.StatusInternalServerError, gin.H{
+		models.WriteToResponse(w,http.StatusInternalServerError, &models.DefaultMap{
 			"msg":nil,
 			"error": ErrInternal,
 		})
 		return
 	}
-	c.Writer.Header().Set("token",token)
-	c.JSON(http.StatusOK,gin.H{
+	w.Header().Set("token",token)
+	models.WriteToResponse(w,http.StatusOK,&models.DefaultMap{
 		"msg":LogInSuccessfulMessage,
 		"error": nil,
 	})
 }
 
 
-func(uc *UserController)LogOut(c *gin.Context){
-	prevContext,_:=c.Get("context")
+func(uc *UserController)LogOut(w http.ResponseWriter,rq *http.Request){
+	prevContext:=rq.Context().Value("context")
 	prevCtx:=prevContext.(context.Context)
 	span, newCtx := tracing.GetSpanFromContext(prevCtx, "user_logout")
 	defer span.Finish()
 	tags:=tracing.TraceTags{FuncName:"LogOut",ServiceName:tracing.ServiceName,RequestID:span.BaggageItem("requestID")}
 	tracing.SetTags(span,tags)
 
-	tokenStr:=c.Request.Header.Get("token")
+	tokenStr:=rq.Header.Get("token")
 	if tokenStr==""{
-		c.Status(http.StatusBadRequest)
+		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
 	sTknCtx,err:=uc.db.StoreToken(newCtx,tokenStr)
 	if err!=nil{
-		c.Status(http.StatusInternalServerError)
+		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
 	go uc.db.DeleteExpiredToken(sTknCtx,tokenStr,jwtTokenGenerate.ExpireDuration)
-	c.JSON(http.StatusOK,gin.H{
+	models.WriteToResponse(w,http.StatusOK,&models.DefaultMap{
 		"msg":"Logged Out Successfully",
 		"error":nil,
 	})

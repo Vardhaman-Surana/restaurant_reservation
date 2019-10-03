@@ -2,9 +2,10 @@ package server
 
 import (
 	"errors"
-	"github.com/gin-gonic/gin"
+	"github.com/gorilla/mux"
 	"github.com/opentracing/opentracing-go"
 	"github.com/vds/restaurant_reservation/user_service/pkg/database"
+	"net/http"
 )
 
 type Server struct{
@@ -20,13 +21,13 @@ func NewServer(db database.Database,tracer opentracing.Tracer)(*Server,error){
 	return &Server{DB:db,Tracer:tracer}, nil
 }
 
-func(server *Server)Start(port string)(*gin.Engine,error){
+func(server *Server)Start(port string)(*mux.Router,error){
 	router,err:=NewRouter(server.DB,server.Tracer)
 	if err!=nil{
 		return nil,err
 	}
 	r := router.Create()
-	err=r.Run(":"+port)
+	err=http.ListenAndServe(":"+port,r)
 	if err != nil {
 		panic(err)
 		return nil,err

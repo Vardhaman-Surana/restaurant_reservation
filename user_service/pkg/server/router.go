@@ -1,11 +1,12 @@
 package server
 
 import (
-	"github.com/gin-gonic/gin"
+	"github.com/gorilla/mux"
 	"github.com/opentracing/opentracing-go"
 	"github.com/vds/restaurant_reservation/user_service/pkg/controller"
 	"github.com/vds/restaurant_reservation/user_service/pkg/database"
 	"github.com/vds/restaurant_reservation/user_service/pkg/middleware"
+	"net/http"
 )
 
 type Router struct{
@@ -19,23 +20,24 @@ func NewRouter(db database.Database,tracer opentracing.Tracer)(*Router,error){
 	router.Tracer=tracer
 	return router,nil
 }
-func (r *Router)Create() *gin.Engine {
+func (r *Router)Create() *mux.Router {
+	muxRouter:=mux.NewRouter()
+
 	uc:=controller.NewUserController(r.DB)
 	resc:=controller.NewRestaurantController(r.DB)
-	ginRouter:=gin.Default()
-	ginRouter.Use(middleware.InitTrace(r.Tracer))
+	muxRouter.Use(middleware.InitTrace(r.Tracer))
 
-	ginRouter.POST("/register",uc.Register)
-	ginRouter.POST("/login",uc.LogIn)
+	muxRouter.HandleFunc("/register",uc.Register).Methods(http.MethodPost)
+	muxRouter.HandleFunc("/login",uc.LogIn).Methods(http.MethodPost)
 
 
-	grp:=ginRouter.Group("/")
-	grp.Use(middleware.TokenValidator(r.DB),middleware.AuthMiddleware())
+	grp:=muxRouter.PathPrefix("/").Subrouter()
+	grp.Use(middleware.TokenValidator(r.DB),middleware.AuthMiddleware)
 	{
-		grp.GET("/restaurants", resc.GetRestaurants)
-		grp.GET("/logout",uc.LogOut)
+		grp.HandleFunc("/restaurants", resc.GetRestaurants).Methods(http.MethodGet)
+		grp.HandleFunc("/logout",uc.LogOut).Methods(http.MethodGet)
 
 	}
 
-	return ginRouter
+	return muxRouter
 }
