@@ -6,6 +6,7 @@ import (
 	"github.com/go-sql-driver/mysql"
 	"github.com/vds/restaurant_reservation/user_service/pkg/database"
 	"github.com/vds/restaurant_reservation/user_service/pkg/encryption"
+	"github.com/vds/restaurant_reservation/user_service/pkg/fireBaseAuth"
 	"github.com/vds/restaurant_reservation/user_service/pkg/jwtTokenGenerate"
 	"github.com/vds/restaurant_reservation/user_service/pkg/models"
 	"github.com/vds/restaurant_reservation/user_service/pkg/tracing"
@@ -146,9 +147,10 @@ func (uc *UserController)LogIn(w http.ResponseWriter,rq *http.Request){
 		})
 		return
 	}
-	claims:=&models.Claims{
-		ID:userOutput.ID,
-	}
+	/*claims:=map[string]interface{}{
+		"ID":userOutput.ID,
+	}*/
+	/*
 	_,token,err:=jwtTokenGenerate.CreateToken(matchPassCtx,claims)
 	if err!=nil{
 		log.Printf("error in generating token: %v",err)
@@ -157,6 +159,10 @@ func (uc *UserController)LogIn(w http.ResponseWriter,rq *http.Request){
 			"error": ErrInternal,
 		})
 		return
+	}*/
+	token,err:=fireBaseAuth.CreateToken(matchPassCtx,userOutput.ID)
+	if err!=nil{
+		log.Printf("error in generating token")
 	}
 	w.Header().Set("token",token)
 	models.WriteToResponse(w,http.StatusOK,&models.DefaultMap{

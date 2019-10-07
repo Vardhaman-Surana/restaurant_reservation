@@ -2,12 +2,12 @@ package middleware
 
 import (
 	"context"
-	"github.com/dgrijalva/jwt-go"
+	"fmt"
+	"github.com/vds/restaurant_reservation/user_service/pkg/fireBaseAuth"
 	"github.com/vds/restaurant_reservation/user_service/pkg/models"
 	"github.com/vds/restaurant_reservation/user_service/pkg/tracing"
 	"log"
 	"net/http"
-	"strings"
 )
 
 const(
@@ -24,9 +24,9 @@ func AuthMiddleware(next http.Handler)http.Handler{
 
 		tags:=tracing.TraceTags{FuncName:"AuthMiddleware",ServiceName:tracing.ServiceName,RequestID:span.BaggageItem("requestID")}
 		tracing.SetTags(span,tags)
-		jwtKey:=[]byte("SecretKey")
-		tokenStr:=rq.Header.Get("token")
-		claims:=&models.Claims{}
+		//jwtKey:=[]byte("SecretKey")
+		tokenStr:=rq.Header.Get("Authorization")
+		/*claims:=&models.Claims{}
 		tkn,err:=jwt.ParseWithClaims(tokenStr,claims,func(token *jwt.Token)(interface{},error){
 			return jwtKey,nil
 		})
@@ -49,9 +49,29 @@ func AuthMiddleware(next http.Handler)http.Handler{
 		if !tkn.Valid {
 			w.WriteHeader(http.StatusUnauthorized)
 			return
+		}*/
+		fmt.Printf("token is %v", tokenStr)
+		idtkn,err:=fireBaseAuth.SignInWithCustomToken(tokenStr)
+
+		if err!=nil{
+			log.Printf("error generating id token:%v",err)
+			return
 		}
+
+
+		userID,err:=fireBaseAuth.VerifyToken(newCtx,idtkn)
+		if err!=nil{
+			log.Print(err)
+			models.WriteToResponse(w,http.StatusUnauthorized,&models.DefaultMap{
+				"msg": nil,
+				"error": TokenExpireErr,
+			})
+			return
+		}
+
+
 		reqContext:=context.WithValue(rq.Context(),"context",newCtx)
-		reqContext=context.WithValue(reqContext,UserIDContextKey,claims.ID)
+		reqContext=context.WithValue(reqContext,UserIDContextKey,userID)
 		next.ServeHTTP(w,rq.WithContext(reqContext))
 	})
 }

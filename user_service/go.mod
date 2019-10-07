@@ -3,11 +3,13 @@ module github.com/vds/restaurant_reservation/user_service
 go 1.12
 
 require (
+	firebase.google.com/go v3.9.0+incompatible
 	github.com/codahale/hdrhistogram v0.0.0-20161010025455-3a0bb77429bd // indirect
 	github.com/dgrijalva/jwt-go v3.2.0+incompatible
 	github.com/fatih/structs v1.1.0
 	github.com/gin-gonic/gin v1.4.0
 	github.com/go-sql-driver/mysql v1.4.1
+	github.com/gobuffalo/packr v1.30.1 // indirect
 	github.com/google/uuid v1.1.1
 	github.com/gorilla/mux v1.7.3
 	github.com/lib/pq v1.2.0 // indirect
@@ -21,6 +23,7 @@ require (
 	github.com/ziutek/mymysql v1.5.4 // indirect
 	go.uber.org/atomic v1.4.0 // indirect
 	golang.org/x/crypto v0.0.0-20190621222207-cc06ce4a13d4
+	google.golang.org/api v0.10.0
 	google.golang.org/appengine v1.6.2 // indirect
 	gopkg.in/check.v1 v1.0.0-20190902080502-41f04d3bba15 // indirect
 	gopkg.in/gorp.v1 v1.7.2
