@@ -5,9 +5,11 @@ go 1.12
 require (
 	github.com/codahale/hdrhistogram v0.0.0-20161010025455-3a0bb77429bd // indirect
 	github.com/dgrijalva/jwt-go v3.2.0+incompatible
+	github.com/fatih/structs v1.1.0
 	github.com/gin-gonic/gin v1.4.0
 	github.com/go-sql-driver/mysql v1.4.1
-	github.com/gobuffalo/packr v1.30.1 // indirect
+	github.com/google/uuid v1.1.1
+	github.com/gorilla/mux v1.7.3
 	github.com/lib/pq v1.2.0 // indirect
 	github.com/mattn/go-sqlite3 v1.11.0 // indirect
 	github.com/opentracing/opentracing-go v1.1.0

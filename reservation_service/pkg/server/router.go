@@ -1,31 +1,36 @@
 package server
 
 import (
-	"github.com/gin-gonic/gin"
+	"github.com/gorilla/mux"
+	"github.com/opentracing/opentracing-go"
 	"github.com/vds/restaurant_reservation/reservation_service/pkg/controller"
 	"github.com/vds/restaurant_reservation/reservation_service/pkg/database"
 	"github.com/vds/restaurant_reservation/reservation_service/pkg/middleware"
+	"net/http"
 )
 
 type Router struct{
 	DB database.Database
+	Tracer opentracing.Tracer
 }
 
-func NewRouter(db database.Database)(*Router,error){
+func NewRouter(db database.Database,tracer opentracing.Tracer)(*Router,error){
 	router := new(Router)
 	router.DB = db
+	router.Tracer=tracer
 	return router,nil
 }
-func (r *Router)Create() *gin.Engine {
+func (r *Router)Create() *mux.Router {
 	rc:=controller.NewReservationController(r.DB)
-	ginRouter:=gin.Default()
+	muxRouter:=mux.NewRouter()
+	muxRouter.Use(middleware.InitTrace(r.Tracer))
 
-	grp:=ginRouter.Group("/")
+	grp:=muxRouter.PathPrefix("/").Subrouter()
 	grp.Use(middleware.AuthMiddleware)
 	{
-		grp.Use(middleware.AuthMiddleware).GET("/checkAvailability", rc.CheckAvailability)
-		grp.Use(middleware.AuthMiddleware).POST("/addReservation", rc.AddReservation)
+		grp.HandleFunc("/checkAvailability", rc.CheckAvailability).Methods(http.MethodGet)
+		grp.HandleFunc("/addReservation", rc.AddReservation).Methods(http.MethodPost)
 	}
 
-	return ginRouter
+	return muxRouter
 }

@@ -1,10 +1,12 @@
 package middleware
 
 import (
+	"context"
 	"github.com/dgrijalva/jwt-go"
-	"github.com/gin-gonic/gin"
+	"github.com/gorilla/mux"
 	"github.com/vds/restaurant_reservation/management/pkg/database"
 	"github.com/vds/restaurant_reservation/management/pkg/models"
+	"github.com/vds/restaurant_reservation/management/pkg/tracing"
 	"log"
 	"net/http"
 	"strings"
@@ -17,55 +19,79 @@ const(
 	TokenExpireMessage="Token expired please login again"
 )
 
-func TokenValidator(db database.Database) gin.HandlerFunc{
-	return func(c *gin.Context){
-		tokenStr:=c.Request.Header.Get("token")
-		isValid:=db.VerifyToken(tokenStr)
+func TokenValidator(db database.Database) mux.MiddlewareFunc{
+	return func(next http.Handler) http.Handler{
+		return http.HandlerFunc(func(w http.ResponseWriter, rq *http.Request){
+		prevContext:=rq.Context().Value("context")
+		prevCtx:=prevContext.(context.Context)
+		span,newCtx:=tracing.GetSpanFromContext(prevCtx,"token_validation")
+		defer span.Finish()
+		tags:=tracing.TraceTags{FuncName:"TokenValidator",ServiceName:tracing.ServiceName,RequestID:span.BaggageItem("requestID")}
+		tracing.SetTags(span,tags)
+
+		tokenStr:=rq.Header.Get("token")
+		vfTknCtx,isValid:=db.VerifyToken(newCtx,tokenStr)
 		if !isValid{
-			c.AbortWithStatus(http.StatusUnauthorized)
-			c.Abort()
+			w.WriteHeader(http.StatusUnauthorized)
+			return
 		}
-		c.Next()
-	}
+		reqCtx:=context.WithValue(rq.Context(),"context",vfTknCtx)
+		next.ServeHTTP(w,rq.WithContext(reqCtx))
+	})}
 }
 
-func AuthMiddleware(c *gin.Context){
+func AuthMiddleware(next http.Handler) http.Handler{
+	return http.HandlerFunc(func(w http.ResponseWriter, rq *http.Request){
+
+	prevContext:=rq.Context().Value("context")
+	prevCtx:=prevContext.(context.Context)
+	span,newCtx:=tracing.GetSpanFromContext(prevCtx,"authentication")
+	defer span.Finish()
+	tags:=tracing.TraceTags{FuncName:"AuthMiddleware",ServiceName:tracing.ServiceName,RequestID:span.BaggageItem("requestID")}
+	tracing.SetTags(span,tags)
+
 	jwtKey:=[]byte("SecretKey")
-	tokenStr:=c.Request.Header.Get("token")
+	tokenStr:=rq.Header.Get("token")
 	claims:=&models.Claims{}
 	tkn,err:=jwt.ParseWithClaims(tokenStr,claims,func(token *jwt.Token)(interface{},error){
 		return jwtKey,nil
 	})
 	if err != nil {
 		if err == jwt.ErrSignatureInvalid {
-			c.AbortWithStatus(http.StatusUnauthorized)
+			w.WriteHeader(http.StatusUnauthorized)
+			return
 		}
 		if strings.Contains(err.Error(), "expired") {
 			log.Print(err)
-			c.JSON(http.StatusUnauthorized,gin.H{
+			w.WriteHeader(http.StatusUnauthorized)
+			bodyMap:=models.DefaultMap{
 				"msg": TokenExpireMessage,
-			})
-			c.AbortWithStatus(http.StatusUnauthorized)
+			}
+			w.Write(bodyMap.ConvertToByteArray())
+			return
 		}
 		log.Printf("%v", err)
-		c.AbortWithStatus(http.StatusUnauthorized)
+		w.WriteHeader(http.StatusUnauthorized)
 		return
 	}
 	if !tkn.Valid {
-		c.AbortWithStatus(http.StatusUnauthorized)
+		w.WriteHeader(http.StatusUnauthorized)
 		return
 	}
 	isValid:=IsValidUserType(claims.Role)
 	if !isValid{
-		c.AbortWithStatus(http.StatusUnauthorized)
+		w.WriteHeader(http.StatusUnauthorized)
 		return
 	}
 	userAuth:=&models.UserAuth{
 		ID:   claims.ID,
 		Role: claims.Role,
 	}
-	c.Set("userAuth",userAuth)
-	c.Next()
+	reqCtx:=context.WithValue(rq.Context(),"context",newCtx)
+	reqCtx=context.WithValue(reqCtx,"userAuth",userAuth)
+
+	next.ServeHTTP(w,rq.WithContext(reqCtx))
+	})
 }
 
 func IsValidUserType(userType string)bool{

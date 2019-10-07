@@ -1,24 +1,34 @@
 package encryption
 
 import (
+	"context"
 	"errors"
+	"github.com/vds/restaurant_reservation/management/pkg/tracing"
 	"golang.org/x/crypto/bcrypt"
 )
 //errors
 var errGenHash = errors.New("error in generating hash for email id")
 
 
-func GenerateHash(value string) (string, error) {
+func GenerateHash(ctx context.Context,value string) (context.Context,string, error) {
+	span,newCtx:=tracing.GetSpanFromContext(ctx,"gen_hash_pass")
+	defer span.Finish()
+	tags:=tracing.TraceTags{FuncName:"GenerateHash",ServiceName:tracing.ServiceName,RequestID:span.BaggageItem("requestID")}
+	tracing.SetTags(span,tags)
 	hash, err := bcrypt.GenerateFromPassword([]byte(value), bcrypt.DefaultCost)
 	if err != nil {
-		return "", errGenHash
+		return newCtx,"", errGenHash
 	}
-	return string(hash), nil
+	return newCtx,string(hash), nil
 }
-func ComparePasswords(phash ,pass string)bool{
+func ComparePasswords(ctx context.Context,phash ,pass string)(context.Context,bool){
+	span,newCtx:=tracing.GetSpanFromContext(ctx,"check_password")
+	defer span.Finish()
+	tags:=tracing.TraceTags{FuncName:"ComparePasswords",ServiceName:tracing.ServiceName,RequestID:span.BaggageItem("requestID")}
+	tracing.SetTags(span,tags)
 	err:=bcrypt.CompareHashAndPassword([]byte(phash),[]byte(pass))
 	if err!=nil{
-		return false
+		return newCtx,false
 	}
-	return true
+	return newCtx,true
 }

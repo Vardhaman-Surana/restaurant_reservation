@@ -1,10 +1,13 @@
 package controller
 
 import (
+	"context"
+	"encoding/json"
 	"fmt"
-	"github.com/gin-gonic/gin"
 	"github.com/vds/restaurant_reservation/reservation_service/pkg/database"
 	"github.com/vds/restaurant_reservation/reservation_service/pkg/middleware"
+	"github.com/vds/restaurant_reservation/reservation_service/pkg/models"
+	"github.com/vds/restaurant_reservation/reservation_service/pkg/tracing"
 	"log"
 	"net/http"
 	"strconv"
@@ -33,23 +36,30 @@ type ReservationController struct{
 }
 
 func NewReservationController(db database.Database)*ReservationController{
-	resc:=new(ReservationController)
-	resc.db=db
-	return resc
+	rc:=new(ReservationController)
+	rc.db=db
+	return rc
 }
 
-func (rc *ReservationController)CheckAvailability(c *gin.Context) {
-	resIDString, ok := c.GetQuery(resIDParam)
+func (rc *ReservationController)CheckAvailability(w http.ResponseWriter,rq *http.Request) {
+	prevContext:=rq.Context().Value("context")
+	prevCtx:=prevContext.(context.Context)
+	span, newCtx :=tracing.GetSpanFromContext(prevCtx,"check_reservation_availability")
+	defer span.Finish()
+	tags:=tracing.TraceTags{FuncName:"CheckAvailability",ServiceName:tracing.ServiceName,RequestID:span.BaggageItem("requestID")}
+	tracing.SetTags(span,tags)
+
+	resIDString:= rq.URL.Query().Get(resIDParam)
 	errMsg := ErrQueryParamNotFound
-	if !ok {
+	if resIDString=="" {
 		errMsg = errMsg + " " + resIDParam
 	}
-	startTimeString, ok := c.GetQuery(startTimeParam)
-	if !ok {
+	startTimeString:= rq.URL.Query().Get(startTimeParam)
+	if startTimeString=="" {
 		errMsg = errMsg + " " + startTimeParam
 	}
 	if errMsg != ErrQueryParamNotFound {
-		c.JSON(http.StatusBadRequest, gin.H{
+		models.WriteToResponse(w,http.StatusBadRequest,&models.DefaultMap{
 			"msg":   nil,
 			"error": errMsg,
 		})
@@ -65,58 +75,58 @@ func (rc *ReservationController)CheckAvailability(c *gin.Context) {
 		errMsg = errMsg+" "+ resIDParam
 	}
 	if errMsg!= ErrInvalidParamType{
-		c.JSON(http.StatusBadRequest, gin.H{
+		models.WriteToResponse(w,http.StatusBadRequest,&models.DefaultMap{
 			"msg":   nil,
 			"error": errMsg,
 		})
 		return
 	}
 	if int64(startTime+OneMinute) < time.Now().Unix(){
-		c.JSON(http.StatusNotAcceptable, gin.H{
+		models.WriteToResponse(w,http.StatusNotAcceptable,&models.DefaultMap{
 			"msg":   nil,
 			"error": "entered startTime is of the past",
 		})
 		return
 	}
-	numTables,err:=rc.db.GetNumAvailableTables(resID,int64(startTime))
+	_,numTables,err:=rc.db.GetNumAvailableTables(newCtx,resID,int64(startTime))
 	if err!=nil{
 		log.Printf("\nerror in getting the number of tables:%v\n",err)
-		c.JSON(http.StatusInternalServerError, gin.H{
+		models.WriteToResponse(w,http.StatusInternalServerError,&models.DefaultMap{
 			"msg":   nil,
 			"error": ErrInternal,
 		})
 		return
 	}
 	if numTables==0{
-		c.JSON(http.StatusOK, gin.H{
+		models.WriteToResponse(w,http.StatusOK, &models.DefaultMap{
 			"msg":   ReservationNotAvailableMessage,
 			"error": nil,
 		})
 		return
 	}
-	c.JSON(http.StatusOK,gin.H{
+	models.WriteToResponse(w,http.StatusOK,&models.DefaultMap{
 		"msg":   ReservationAvailableMessage+fmt.Sprintf("%d",numTables),
 		"error": nil,
 	})
 }
 
-func (rc *ReservationController)AddReservation(c *gin.Context){
-	userID,exists:=c.Get(middleware.UserIDContextKey)
-	if !exists{
-		log.Printf("\nDid not get user id in the context got: <%v> instead\n",userID)
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"msg":   nil,
-			"error": ErrInternal,
-		})
-	}
+func (rc *ReservationController)AddReservation(w http.ResponseWriter,rq *http.Request){
+	prevContext:=rq.Context().Value("context")
+	prevCtx:=prevContext.(context.Context)
+	span, newCtx :=tracing.GetSpanFromContext(prevCtx,"make_reservation")
+	defer span.Finish()
+	tags:=tracing.TraceTags{FuncName:"AddReservation",ServiceName:tracing.ServiceName,RequestID:span.BaggageItem("requestID")}
+	tracing.SetTags(span,tags)
+
+	userID:=rq.Context().Value(middleware.UserIDContextKey)
 	data:=struct{
 		ResID int `json:"resID"`
 		StartTime int64 `json:"startTime"`
 	}{}
-	err:=c.ShouldBindJSON(&data)
+	err:=json.NewDecoder(rq.Body).Decode(&data)
 	if err!=nil{
 		log.Printf("err is %v",err)
-		c.JSON(http.StatusBadRequest, gin.H{
+		models.WriteToResponse(w,http.StatusBadRequest, &models.DefaultMap{
 			"msg":nil,
 			"error": ErrInvalidJsonInput,
 		})
@@ -130,37 +140,37 @@ func (rc *ReservationController)AddReservation(c *gin.Context){
 		errMsg = errMsg + " " + startTimeParam
 	}
 	if errMsg != ErrEmptyFields {
-		c.JSON(http.StatusBadRequest, gin.H{
+		models.WriteToResponse(w,http.StatusBadRequest, &models.DefaultMap{
 			"msg":   nil,
 			"error": errMsg,
 		})
 		return
 	}
 	if (data.StartTime+OneMinute) < time.Now().Unix(){
-		c.JSON(http.StatusNotAcceptable, gin.H{
+		models.WriteToResponse(w,http.StatusNotAcceptable, &models.DefaultMap{
 			"msg":   nil,
 			"error": "entered startTime is of the past",
 		})
 		return
 	}
 
-	id,err:=rc.db.CreateReservation(data.ResID,data.StartTime,userID.(string))
+	_,id,err:=rc.db.CreateReservation(newCtx,data.ResID,data.StartTime,userID.(string))
 	if err!=nil{
 		log.Printf("error in creating reservations:%v",err)
 		if err.Error()==ReservationNotAvailableMessage{
-			c.JSON(http.StatusNotAcceptable, gin.H{
+			models.WriteToResponse(w,http.StatusNotAcceptable, &models.DefaultMap{
 				"msg":   nil,
 				"error": ReservationNotAvailableMessage,
 			})
 			return
 		}
-		c.JSON(http.StatusInternalServerError, gin.H{
+		models.WriteToResponse(w,http.StatusInternalServerError, &models.DefaultMap{
 			"msg":   nil,
 			"error": ErrInternal,
 		})
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{
+	models.WriteToResponse(w,http.StatusOK, &models.DefaultMap{
 		"msg":   ReservationSuccessMessage,
 		"error": nil,
 		"resvID":id,

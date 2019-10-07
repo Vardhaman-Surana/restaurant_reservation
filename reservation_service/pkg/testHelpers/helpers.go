@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"github.com/dgrijalva/jwt-go"
-	"github.com/gin-gonic/gin"
+	"github.com/gorilla/mux"
 	"github.com/vds/restaurant_reservation/reservation_service/pkg/database/mysql"
 	"github.com/vds/restaurant_reservation/reservation_service/pkg/models"
 	"github.com/vds/restaurant_reservation/reservation_service/pkg/server"
@@ -35,7 +35,7 @@ var (
 	GlobalDB *mysql.MysqlDbMap
 	OnceDB sync.Once
 	OnceRouter sync.Once
-	Router *gin.Engine
+	Router *mux.Router
 )
 func InitDB()(*mysql.MysqlDbMap,error){
 	var err error
@@ -47,15 +47,15 @@ func InitDB()(*mysql.MysqlDbMap,error){
 	return GlobalDB,err
 }
 
-func GetRouter()(*gin.Engine,error){
+func GetRouter()(*mux.Router,error){
 	var err error
 	OnceRouter.Do(func(){
-		initRouter,er:=server.NewRouter(GlobalDB)
+		initRouter,er:=server.NewRouter(GlobalDB,nil)
 		if er!=nil{
 			err=er
 			Router=nil
 		}else {
-			Router = initRouter.Create()
+			Router =initRouter.Create()
 			err=er
 		}
 	})

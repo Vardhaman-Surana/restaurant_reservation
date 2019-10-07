@@ -1,12 +1,18 @@
 package rabbitmq_queue
 
 import (
+	"context"
 	"encoding/json"
 	"github.com/streadway/amqp"
+	"github.com/vds/restaurant_reservation/management/pkg/tracing"
 	"log"
 	"os"
 	"sync"
 	"time"
+)
+
+const (
+	defaultRabbitURL="amqp://guest:guest@localhost:5672/"
 )
 
 type Queue struct{
@@ -29,6 +35,10 @@ func InitializeQueue() *Queue {
 		log.Println("Inside Once")
 		log.Println("*********************************")
 		rabbitURL:=os.Getenv("RABBITMQ_URL")
+		if rabbitURL==""{
+			rabbitURL=defaultRabbitURL
+		}
+
 		conn := rConnect(rabbitURL)
 		if conn==nil{
 			uploadNumTables.Connection=nil
@@ -99,13 +109,26 @@ func Close(){
 	}
 }
 
-func SendMessage(resID int,numTables int)error{
-	data:=map[string]int{"resID":resID,"numTables":numTables}
-	byteData,err:=json.Marshal(data)
+func SendMessage(ctx context.Context,resID int,numTables int)(context.Context,error){
+	span,newCtx:=tracing.GetSpanFromContext(ctx,"sendMessage")
+	defer span.Finish()
+	tags:=tracing.TraceTags{FuncName:"SendMessage",ServiceName:tracing.ServiceName,RequestID:span.BaggageItem("requestID")}
+	tracing.SetTags(span,tags)
+	reqID:=tags.RequestID
+	ResIdAndTables:=struct{
+		ResID int `json:"resID"`
+		NumTables int `json:"numTables"`
+		ReqID string `json:"reqID"`
+	}{resID,numTables,reqID}
+
+
+	log.Println(span.Context())
+	byteData,err:=json.Marshal(ResIdAndTables)
 	if err!=nil{
-		return err
+		return newCtx,err
 	}
+
 	uploadNumTables.PublishData(byteData)
 	log.Printf("\nMessage Sent\n")
-	return nil
+	return newCtx,nil
 }

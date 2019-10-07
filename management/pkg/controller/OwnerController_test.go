@@ -248,7 +248,8 @@ func assertDbEntryOwner(t *testing.T,DB *mysql.MySqlDB,email,wantName,pass strin
 	if gotName!=wantName{
 		t.Errorf("owner not added in the database: invalid name")
 	}
-	if !encryption.ComparePasswords(gotPass,pass){
+	_,isCorrect:=encryption.ComparePasswords(nil,gotPass,pass)
+	if !isCorrect{
 		t.Errorf("owner not added in the database: invalid password")
 	}
 }

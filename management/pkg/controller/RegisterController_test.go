@@ -138,7 +138,8 @@ func assertDbEntryAdmins(t *testing.T,DB *mysql.MySqlDB,tableName string,want *m
 	result.Next()
 	result.Scan(&got.Email,&got.Name,&got.Password)
 
-	if want.Name==got.Name && want.Email==got.Email &&  encryption.ComparePasswords(got.Password,want.Password){
+	_,isCorrect:=encryption.ComparePasswords(nil,got.Password,want.Password)
+	if want.Name==got.Name && want.Email==got.Email && isCorrect {
 		return
 	}
 	t.Errorf("Invalid Data entry got +%v want +%v",got,want)

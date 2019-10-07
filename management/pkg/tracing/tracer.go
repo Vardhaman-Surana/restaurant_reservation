@@ -1,15 +1,25 @@
 package tracing
 
-
 import (
+	"context"
 	"fmt"
+	"github.com/fatih/structs"
 	"github.com/opentracing/opentracing-go"
 	"github.com/uber/jaeger-client-go"
 	"github.com/uber/jaeger-client-go/config"
 	"io"
 )
 
-func InitTracer(service string) (opentracing.Tracer, io.Closer) {
+type TraceTags struct{
+	RequestID string
+	FuncName string
+	ServiceName string
+}
+
+
+const ServiceName = "managementSvc"
+
+func NewTracer(service string) (opentracing.Tracer, io.Closer) {
 	cfg := &config.Configuration{
 		Sampler: &config.SamplerConfig{
 			Type:  "const",
@@ -25,3 +35,33 @@ func InitTracer(service string) (opentracing.Tracer, io.Closer) {
 	}
 	return tracer, closer
 }
+
+func GetSpan(tracer opentracing.Tracer,operationName string)opentracing.Span{
+	span:=tracer.StartSpan(operationName)
+	return span
+}
+func GetSpanFromContext(ctx context.Context,operationName string)(opentracing.Span,context.Context) {
+	span,newCtx:=opentracing.StartSpanFromContext(ctx,operationName)
+	return span,newCtx
+}
+
+func SetTags(span opentracing.Span,tags TraceTags){
+	tagMap:=structs.Map(tags)
+	for k,v:=range tagMap{
+		span.SetTag(k,v)
+	}
+}
+
+/*
+func SetBaggageItems(span opentracing.Span,baggageMap map[string]string){
+	for k,v:=range baggageMap{
+		span.SetBaggageItem(k,v)
+	}
+}
+*/
+
+
+
+
+
+

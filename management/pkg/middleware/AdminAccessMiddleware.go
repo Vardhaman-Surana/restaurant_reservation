@@ -1,28 +1,50 @@
 package middleware
 
 import (
-	"github.com/gin-gonic/gin"
+	"context"
 	"github.com/vds/restaurant_reservation/management/pkg/models"
+	"github.com/vds/restaurant_reservation/management/pkg/tracing"
 	"net/http"
 )
 
-func AdminAccessOnly(c *gin.Context){
-	value,_:=c.Get("userAuth")
-	userAuth:=value.(*models.UserAuth)
-	if userAuth.Role!=Admin && userAuth.Role!=SuperAdmin{
-		c.AbortWithStatus(http.StatusUnauthorized)
-		//c.Abort()
-		return
-	}
-	c.Next()
+func AdminAccessOnly(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, rq *http.Request) {
+		prevContext:= rq.Context().Value("context")
+		prevCtx := prevContext.(context.Context)
+		span, newCtx := tracing.GetSpanFromContext(prevCtx, "check_for_admin_and_sadmin")
+		defer span.Finish()
+		tags := tracing.TraceTags{FuncName: "AdminAccessOnly", ServiceName: tracing.ServiceName, RequestID: span.BaggageItem("requestID")}
+		tracing.SetTags(span, tags)
+
+		value:= rq.Context().Value("userAuth")
+		userAuth := value.(*models.UserAuth)
+		if userAuth.Role != Admin && userAuth.Role != SuperAdmin {
+			w.WriteHeader(http.StatusUnauthorized)
+			//c.Abort()
+			return
+		}
+		reqContext:=context.WithValue(rq.Context(),"context", newCtx)
+		next.ServeHTTP(w,rq.WithContext(reqContext))
+	})
 }
 
-func SuperAdminAccessOnly(c *gin.Context){
-	value,_:=c.Get("userAuth")
+func SuperAdminAccessOnly(next http.Handler) http.Handler{
+	return http.HandlerFunc(func(w http.ResponseWriter, rq *http.Request){
+
+	prevContext:=rq.Context().Value("context")
+	prevCtx:=prevContext.(context.Context)
+	span,newCtx:=tracing.GetSpanFromContext(prevCtx,"check_for_sadmin")
+	defer span.Finish()
+	tags:=tracing.TraceTags{FuncName:"SuperAdminAccessOnly",ServiceName:tracing.ServiceName,RequestID:span.BaggageItem("requestID")}
+	tracing.SetTags(span,tags)
+
+	value:=rq.Context().Value("userAuth")
 	userAuth:=value.(*models.UserAuth)
 	if userAuth.Role!=SuperAdmin{
-		c.AbortWithStatus(http.StatusUnauthorized)
+		w.WriteHeader(http.StatusUnauthorized)
 		return
 	}
-	c.Next()
+	reqContext:=context.WithValue(rq.Context(),"context", newCtx)
+	next.ServeHTTP(w,rq.WithContext(reqContext))
+	})
 }

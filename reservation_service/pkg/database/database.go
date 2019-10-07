@@ -1,10 +1,13 @@
 package database
 
+import "context"
+
 type Database interface {
-	CreateTablesForRestaurant(resID int,numTables int)error
+	CreateTablesForRestaurant(ctx context.Context,resID int,numTables int)(context.Context,error)
 
-	GetNumAvailableTables(resID int,startTime int64)(numTables int,err error)
-	CreateReservation(resID int,startTime int64,userID string)(resvID int,err error)
+	GetNumAvailableTables(ctx context.Context,resID int,startTime int64)(ctx2 context.Context,numTables int,err error)
+	CreateReservation(ctx context.Context,resID int,startTime int64,userID string)(ctx2 context.Context,resvID int,err error)
 
-	MarkReservationAsDeleted()
+	//go function
+	MarkReservationAsDeleted(ctx context.Context)
 }

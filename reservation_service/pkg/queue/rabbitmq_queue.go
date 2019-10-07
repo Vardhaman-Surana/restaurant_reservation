@@ -1,9 +1,12 @@
 package queue
 
 import (
+	"context"
 	"encoding/json"
+	"github.com/opentracing/opentracing-go"
 	"github.com/streadway/amqp"
 	"github.com/vds/restaurant_reservation/reservation_service/pkg/database"
+	"github.com/vds/restaurant_reservation/reservation_service/pkg/tracing"
 	"log"
 	"sync"
 	"time"
@@ -76,7 +79,7 @@ func FailOnError(err error, msg string) {
 	}
 }
 
-func ConsumeMessage(dbMap database.Database){
+func ConsumeMessage(tracer opentracing.Tracer,dbMap database.Database){
 	msgs, err := uploadNumTables.Ch.Consume(
 		uploadNumTables.Name, // queue
 		"",     // consumer
@@ -89,24 +92,34 @@ func ConsumeMessage(dbMap database.Database){
 	ResIdAndTables:=struct{
 		ResID int `json:"resID"`
 		NumTables int `json:"numTables"`
+		ReqID string `json:"reqID"`
 	}{}
 	FailOnError(err,"Failed to register a consumer")
 	forever := make(chan bool)
 	go func() {
 		for d := range msgs {
+
 			err=json.Unmarshal(d.Body,&ResIdAndTables)
 			if err!=nil{
 				log.Printf("err is %v",err)
 			}else{
+				span := tracer.StartSpan("process_message")
+				tags:=tracing.TraceTags{FuncName:"ConsumeMessage",ServiceName:tracing.ServiceName,RequestID:ResIdAndTables.ReqID}
+				span.SetBaggageItem("requestID",ResIdAndTables.ReqID)
+				tracing.SetTags(span,tags)
 				log.Println("*********************************")
 				log.Println("Got a Message")
 				log.Println("*********************************")
-				log.Printf("Msg received is %+v",ResIdAndTables)
-				err:=dbMap.CreateTablesForRestaurant(ResIdAndTables.ResID,ResIdAndTables.NumTables)
+				newCtx:=context.Background()
+				newCtx=opentracing.ContextWithSpan(newCtx,span)
+
+
+				_,err:=dbMap.CreateTablesForRestaurant(newCtx,ResIdAndTables.ResID,ResIdAndTables.NumTables)
 				if err!=nil{
 					log.Printf("error is %v",err)
 				}
 				log.Printf("\nProcessed the message\n")
+				span.Finish()
 			}
 		}
 	}()

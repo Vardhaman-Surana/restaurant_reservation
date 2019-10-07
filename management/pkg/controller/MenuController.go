@@ -1,11 +1,13 @@
 package controller
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/gin-gonic/gin"
+	"github.com/gorilla/mux"
 	"github.com/vds/restaurant_reservation/management/pkg/database"
 	"github.com/vds/restaurant_reservation/management/pkg/models"
+	"github.com/vds/restaurant_reservation/management/pkg/tracing"
 	"net/http"
 	"strconv"
 )
@@ -20,14 +22,21 @@ func NewMenuController(db database.Database) *MenuController{
 	return menuController
 }
 
-func (m *MenuController)GetMenu(c *gin.Context){
-	res,_:=c.Get("restaurantID")
+func (m *MenuController)GetMenu(w http.ResponseWriter, rq *http.Request){
+	prevContext:=rq.Context().Value("context")
+	prevCtx:=prevContext.(context.Context)
+	span,newCtx:=tracing.GetSpanFromContext(prevCtx,"get_restaurant_menu")
+	defer span.Finish()
+	tags:=tracing.TraceTags{FuncName:"GetMenu",ServiceName:tracing.ServiceName,RequestID:span.BaggageItem("requestID")}
+	tracing.SetTags(span,tags)
+
+	res:=rq.Context().Value("restaurantID")
 	resID:=res.(int)
 	jsonData:=&[]models.DishOutput{}
 	var stringData string
-	stringData,err:=m.ShowMenu(resID)
+	_,stringData,err:=m.ShowMenu(newCtx,resID)
 	if err!=nil{
-		c.JSON(http.StatusBadRequest, gin.H{
+		models.WriteToResponse(w,http.StatusBadRequest, &models.DefaultMap{
 			"error":err.Error(),
 		})
 		return
@@ -35,92 +44,116 @@ func (m *MenuController)GetMenu(c *gin.Context){
 	if stringData!=""{
 		_ =json.Unmarshal([]byte(stringData),jsonData)
 	}
-	c.JSON(http.StatusOK,jsonData)
+	w.WriteHeader(http.StatusOK)
+	body,_:=json.Marshal(jsonData)
+	w.Write(body)
 }
 
-func (m *MenuController)AddDishes(c *gin.Context){
-	res,_:=c.Get("restaurantID")
+func (m *MenuController)AddDishes(w http.ResponseWriter, rq *http.Request){
+	prevContext:=rq.Context().Value("context")
+	prevCtx:=prevContext.(context.Context)
+	span,newCtx:=tracing.GetSpanFromContext(prevCtx,"add_restaurant_dishes")
+	defer span.Finish()
+	tags:=tracing.TraceTags{FuncName:"AddDishes",ServiceName:tracing.ServiceName,RequestID:span.BaggageItem("requestID")}
+	tracing.SetTags(span,tags)
+
+	res:=rq.Context().Value("restaurantID")
 	resID:=res.(int)
 	var dishes []models.Dish
-	err:=c.ShouldBind(&dishes)
+	err:=json.NewDecoder(rq.Body).Decode(&dishes)
 	if err!=nil {
 		fmt.Printf("error in reading json input:%v",err)
-		c.JSON(http.StatusBadRequest, gin.H{
+		models.WriteToResponse(w,http.StatusBadRequest, &models.DefaultMap{
 			"error": ErrJsonInput,
 		})
 		return
 	}
-	err=m.InsertDishes(dishes,resID)
+	_,err=m.InsertDishes(newCtx,dishes,resID)
 	if err!=nil{
-		c.JSON(http.StatusBadRequest, gin.H{
+		models.WriteToResponse(w,http.StatusBadRequest, &models.DefaultMap{
 			"error": err.Error(),
 		})
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{
+	models.WriteToResponse(w,http.StatusOK, &models.DefaultMap{
 		"msg":"Dishes Added to menu successfully",
 	})
 	return
 }
 
-func (m *MenuController)EditDish(c *gin.Context){
+func (m *MenuController)EditDish(w http.ResponseWriter, rq *http.Request){
+	prevContext:=rq.Context().Value("context")
+	prevCtx:=prevContext.(context.Context)
+	span,newCtx:=tracing.GetSpanFromContext(prevCtx,"update_restaurant_menu")
+	defer span.Finish()
+	tags:=tracing.TraceTags{FuncName:"EditDish",ServiceName:tracing.ServiceName,RequestID:span.BaggageItem("requestID")}
+	tracing.SetTags(span,tags)
+
 	var dish models.DishOutput
-	res,_:=c.Get("restaurantID")
+	res:=rq.Context().Value("restaurantID")
 	resID:=res.(int)
-	dishValue:=c.Param("dishID")
+	vars:=mux.Vars(rq)
+	dishValue:=vars["dishID"]
 	dishID,_:=strconv.Atoi(dishValue)
 	dish.ID=dishID
-	err:=c.ShouldBindJSON(&dish)
+	err:=json.NewDecoder(rq.Body).Decode(&dish)
 	if err!=nil {
 		fmt.Printf("error in parsing json input:%v",err)
-		c.JSON(http.StatusBadRequest, gin.H{
+		models.WriteToResponse(w,http.StatusBadRequest, &models.DefaultMap{
 			"error": ErrJsonInput,
 		})
 		return
 	}
-	err=m.CheckRestaurantDish(resID,dish.ID)
+	chkDishCtx,err:=m.CheckRestaurantDish(newCtx,resID,dish.ID)
 	if err!=nil{
 		if err!=database.ErrInternal{
-			c.JSON(http.StatusBadRequest, gin.H{
+			models.WriteToResponse(w,http.StatusBadRequest, &models.DefaultMap{
 				"error": err.Error(),
 			})
 			return
 		}
-		c.Status(http.StatusInternalServerError)
+		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
-	err=m.UpdateDish(&dish)
+	_,err=m.UpdateDish(chkDishCtx,&dish)
 	if err!=nil{
-		c.Writer.WriteHeader(http.StatusInternalServerError)
+		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{
+	models.WriteToResponse(w,http.StatusOK, &models.DefaultMap{
 		"msg":"Dish Updated successfully",
 	})
 }
 
-func(m *MenuController)DeleteDishes(c *gin.Context){
+func(m *MenuController)DeleteDishes(w http.ResponseWriter, rq *http.Request){
+	prevContext:=rq.Context().Value("context")
+	prevCtx:=prevContext.(context.Context)
+	span,newCtx:=tracing.GetSpanFromContext(prevCtx,"delete_restaurant_dishes")
+	defer span.Finish()
+	tags:=tracing.TraceTags{FuncName:"DeleteDishes",ServiceName:tracing.ServiceName,RequestID:span.BaggageItem("requestID")}
+	tracing.SetTags(span,tags)
+
 	var dishID struct {
 		IDArr []int	`json:"idArr" binding:"required"`
 	}
-	err:=c.ShouldBindJSON(&dishID)
+	err:=json.NewDecoder(rq.Body).Decode(&dishID)
 	if err!=nil {
 		fmt.Printf("error in reading json input:%v",err)
-		c.JSON(http.StatusBadRequest, gin.H{
+		models.WriteToResponse(w,http.StatusBadRequest, &models.DefaultMap{
 			"error": ErrJsonInput,
 		})
 		return
 	}
-	err=m.RemoveDishes(dishID.IDArr...)
+	_,err=m.RemoveDishes(newCtx,dishID.IDArr...)
 	if err!=nil{
 		if err!=database.ErrInternal{
-			c.JSON(http.StatusBadRequest, gin.H{
+			models.WriteToResponse(w,http.StatusBadRequest, &models.DefaultMap{
 				"error": err.Error(),
 			})
 			return
 		}
 	}
-	c.JSON(http.StatusOK,gin.H{
+	models.WriteToResponse(w,http.StatusOK,&models.DefaultMap{
 		"msg":"Dishes deleted successfully",
 	})
 }

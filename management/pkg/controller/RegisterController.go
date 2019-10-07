@@ -1,11 +1,13 @@
 package controller
 
 import (
+	"context"
+	"encoding/json"
 	"fmt"
-	"github.com/gin-gonic/gin"
 	"github.com/vds/restaurant_reservation/management/pkg/database"
 	"github.com/vds/restaurant_reservation/management/pkg/middleware"
 	"github.com/vds/restaurant_reservation/management/pkg/models"
+	"github.com/vds/restaurant_reservation/management/pkg/tracing"
 	"net/http"
 )
 
@@ -21,34 +23,41 @@ func NewRegisterController(db database.Database) *RegisterController{
 	return regController
 }
 
-func(r *RegisterController)Register(c *gin.Context){
+func(r *RegisterController)Register(w http.ResponseWriter, rq *http.Request){
+	prevContext:=rq.Context().Value("context")
+	prevCtx:=prevContext.(context.Context)
+	span,newCtx:=tracing.GetSpanFromContext(prevCtx,"registration")
+	defer span.Finish()
+	tags:=tracing.TraceTags{FuncName:"Register",ServiceName:tracing.ServiceName,RequestID:span.BaggageItem("requestID")}
+	tracing.SetTags(span,tags)
+
 	var user models.UserReg
-	err:=c.ShouldBindJSON(&user)
+	err:=json.NewDecoder(rq.Body).Decode(&user)
 	if err!=nil {
 		fmt.Printf("err is %v",err)
-		c.JSON(http.StatusBadRequest, gin.H{
+		models.WriteToResponse(w,http.StatusBadRequest, &models.DefaultMap{
 			"error": ErrJsonInput,
 			"status":Fail,
 		})
 		return
 	}
 	if user.Role!=middleware.Admin && user.Role!=middleware.SuperAdmin {
-		c.Status(http.StatusNotFound)
+		w.WriteHeader(http.StatusNotFound)
 		return
 	}
-	err=r.CreateUser(&user)
+	_,err=r.CreateUser(newCtx,&user)
 	if err!=nil{
 		if err==database.ErrDupEmail{
-			c.JSON(http.StatusBadRequest, gin.H{
+			models.WriteToResponse(w,http.StatusBadRequest, &models.DefaultMap{
 				"error": database.ErrDupEmail.Error(),
 				"status":Fail,
 			})
 			return
 		}
-		c.Status(http.StatusInternalServerError)
+		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
-	c.JSON(http.StatusOK,gin.H{
+	models.WriteToResponse(w,http.StatusOK,&models.DefaultMap{
 		"role":user.Role,
 		"msg":"Registration Successful",
 		"status":Success,

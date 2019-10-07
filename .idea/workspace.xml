@@ -2,23 +2,53 @@
 <project version="4">
   <component name="ChangeListManager">
     <list default="true" id="8ee67c5e-63b1-4cb0-9cab-b3d56349a5af" name="Default Changelist" comment="">
-      <change afterPath="$PROJECT_DIR$/.idea/vcs.xml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/user_service/pkg/fireBaseAuth/fireBaseAuth.go" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/management/cmd/main.go" beforeDir="false" afterPath="$PROJECT_DIR$/management/cmd/main.go" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/management/go.mod" beforeDir="false" afterPath="$PROJECT_DIR$/management/go.mod" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/management/go.sum" beforeDir="false" afterPath="$PROJECT_DIR$/management/go.sum" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/management/pkg/controller/AdminController.go" beforeDir="false" afterPath="$PROJECT_DIR$/management/pkg/controller/AdminController.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/management/pkg/controller/HelloWorldController.go" beforeDir="false" afterPath="$PROJECT_DIR$/management/pkg/controller/HelloWorldController.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/management/pkg/controller/LogInController.go" beforeDir="false" afterPath="$PROJECT_DIR$/management/pkg/controller/LogInController.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/management/pkg/controller/MenuController.go" beforeDir="false" afterPath="$PROJECT_DIR$/management/pkg/controller/MenuController.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/management/pkg/controller/OwnerController.go" beforeDir="false" afterPath="$PROJECT_DIR$/management/pkg/controller/OwnerController.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/management/pkg/controller/OwnerController_test.go" beforeDir="false" afterPath="$PROJECT_DIR$/management/pkg/controller/OwnerController_test.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/management/pkg/controller/RegisterController.go" beforeDir="false" afterPath="$PROJECT_DIR$/management/pkg/controller/RegisterController.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/management/pkg/controller/RegisterController_test.go" beforeDir="false" afterPath="$PROJECT_DIR$/management/pkg/controller/RegisterController_test.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/management/pkg/controller/RestaurantController.go" beforeDir="false" afterPath="$PROJECT_DIR$/management/pkg/controller/RestaurantController.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/management/pkg/controller/testHelpers_test.go" beforeDir="false" afterPath="$PROJECT_DIR$/management/pkg/controller/testHelpers_test.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/management/pkg/database/database.go" beforeDir="false" afterPath="$PROJECT_DIR$/management/pkg/database/database.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/management/pkg/database/mysql/mysql.go" beforeDir="false" afterPath="$PROJECT_DIR$/management/pkg/database/mysql/mysql.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/management/pkg/encryption/JWT.go" beforeDir="false" afterPath="$PROJECT_DIR$/management/pkg/encryption/JWT.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/management/pkg/encryption/PasswordEncryption.go" beforeDir="false" afterPath="$PROJECT_DIR$/management/pkg/encryption/PasswordEncryption.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/management/pkg/middleware/AdminAccessMiddleware.go" beforeDir="false" afterPath="$PROJECT_DIR$/management/pkg/middleware/AdminAccessMiddleware.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/management/pkg/middleware/AuthMiddleware.go" beforeDir="false" afterPath="$PROJECT_DIR$/management/pkg/middleware/AuthMiddleware.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/management/pkg/middleware/ValidateRestaurantAndCreatorMiddleware.go" beforeDir="false" afterPath="$PROJECT_DIR$/management/pkg/middleware/ValidateRestaurantAndCreatorMiddleware.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/management/pkg/middleware/initTrace.go" beforeDir="false" afterPath="$PROJECT_DIR$/management/pkg/middleware/initTrace.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/management/pkg/models/DefaultMap.go" beforeDir="false" afterPath="$PROJECT_DIR$/management/pkg/models/DefaultMap.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/management/pkg/queue/rabbitmq_queue.go" beforeDir="false" afterPath="$PROJECT_DIR$/management/pkg/queue/rabbitmq_queue.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/management/pkg/server/router.go" beforeDir="false" afterPath="$PROJECT_DIR$/management/pkg/server/router.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/management/pkg/server/server.go" beforeDir="false" afterPath="$PROJECT_DIR$/management/pkg/server/server.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/management/pkg/tracing/tracer.go" beforeDir="false" afterPath="$PROJECT_DIR$/management/pkg/tracing/tracer.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/reservation_service/cmd/main.go" beforeDir="false" afterPath="$PROJECT_DIR$/reservation_service/cmd/main.go" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/reservation_service/go.mod" beforeDir="false" afterPath="$PROJECT_DIR$/reservation_service/go.mod" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/reservation_service/go.sum" beforeDir="false" afterPath="$PROJECT_DIR$/reservation_service/go.sum" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/reservation_service/pkg/controller/reservationController.go" beforeDir="false" afterPath="$PROJECT_DIR$/reservation_service/pkg/controller/reservationController.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/reservation_service/pkg/controller/reservationController_test.go" beforeDir="false" afterPath="$PROJECT_DIR$/reservation_service/pkg/controller/reservationController_test.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/reservation_service/pkg/database/database.go" beforeDir="false" afterPath="$PROJECT_DIR$/reservation_service/pkg/database/database.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/reservation_service/pkg/database/mysql/mysql_orp.go" beforeDir="false" afterPath="$PROJECT_DIR$/reservation_service/pkg/database/mysql/mysql_orp.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/reservation_service/pkg/middleware/AuthMiddleware.go" beforeDir="false" afterPath="$PROJECT_DIR$/reservation_service/pkg/middleware/AuthMiddleware.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/reservation_service/pkg/middleware/initTrace.go" beforeDir="false" afterPath="$PROJECT_DIR$/reservation_service/pkg/middleware/initTrace.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/reservation_service/pkg/queue/rabbitmq_queue.go" beforeDir="false" afterPath="$PROJECT_DIR$/reservation_service/pkg/queue/rabbitmq_queue.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/reservation_service/pkg/server/router.go" beforeDir="false" afterPath="$PROJECT_DIR$/reservation_service/pkg/server/router.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/reservation_service/pkg/server/server.go" beforeDir="false" afterPath="$PROJECT_DIR$/reservation_service/pkg/server/server.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/reservation_service/pkg/testHelpers/helpers.go" beforeDir="false" afterPath="$PROJECT_DIR$/reservation_service/pkg/testHelpers/helpers.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/reservation_service/pkg/tracing/tracer.go" beforeDir="false" afterPath="$PROJECT_DIR$/reservation_service/pkg/tracing/tracer.go" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/user_service/cmd/main.go" beforeDir="false" afterPath="$PROJECT_DIR$/user_service/cmd/main.go" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/user_service/go.mod" beforeDir="false" afterPath="$PROJECT_DIR$/user_service/go.mod" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/user_service/pkg/controller/restaurantController.go" beforeDir="false" afterPath="$PROJECT_DIR$/user_service/pkg/controller/restaurantController.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/user_service/go.sum" beforeDir="false" afterPath="$PROJECT_DIR$/user_service/go.sum" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/user_service/pkg/controller/userController.go" beforeDir="false" afterPath="$PROJECT_DIR$/user_service/pkg/controller/userController.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/user_service/pkg/database/database.go" beforeDir="false" afterPath="$PROJECT_DIR$/user_service/pkg/database/database.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/user_service/pkg/database/mysql/mysql_orp.go" beforeDir="false" afterPath="$PROJECT_DIR$/user_service/pkg/database/mysql/mysql_orp.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/user_service/pkg/middleware/AuthMiddleware.go" beforeDir="false" afterPath="$PROJECT_DIR$/user_service/pkg/middleware/AuthMiddleware.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/user_service/pkg/middleware/tokenValidator.go" beforeDir="false" afterPath="$PROJECT_DIR$/user_service/pkg/middleware/tokenValidator.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/user_service/pkg/server/router.go" beforeDir="false" afterPath="$PROJECT_DIR$/user_service/pkg/server/router.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/user_service/pkg/server/server.go" beforeDir="false" afterPath="$PROJECT_DIR$/user_service/pkg/server/server.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/user_service/pkg/tracing/tracer.go" beforeDir="false" afterPath="$PROJECT_DIR$/user_service/pkg/tracing/tracer.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/user_service/pkg/middleware/authMiddleware.go" beforeDir="false" afterPath="$PROJECT_DIR$/user_service/pkg/middleware/authMiddleware.go" afterDir="false" />
     </list>
     <option name="EXCLUDED_CONVERTED_TO_IGNORED" value="true" />
     <option name="SHOW_DIALOG" value="false" />
@@ -53,8 +83,13 @@
     <property name="go.sdk.automatically.set" value="true" />
     <property name="go.tried.to.enable.integration.vgo.integrator" value="true" />
     <property name="last_opened_file_path" value="$PROJECT_DIR$" />
+    <property name="settings.editor.selected.configurable" value="preferences.lookFeel" />
   </component>
   <component name="RecentsManager">
+    <key name="CopyFile.RECENT_KEYS">
+      <recent name="$PROJECT_DIR$/user_service/pkg/models" />
+      <recent name="$PROJECT_DIR$/reservation_service/pkg/models" />
+    </key>
     <key name="MoveFile.RECENT_KEYS">
       <recent name="$PROJECT_DIR$/reservation_service/pkg/database/mysql" />
       <recent name="$PROJECT_DIR$/user_service/pkg/database/mysql" />
@@ -72,7 +107,20 @@
       </list>
     </option>
   </component>
-  <component name="RunManager" selected="Go Test.go test github.com/vds/restaurant_reservation/user_service/pkg/controller">
+  <component name="RunManager" selected="Go Build.go build github.com/vds/restaurant_reservation/user_service/cmd">
+    <configuration name="go build github.com/vds/restaurant_reservation/user_service/cmd" type="GoApplicationRunConfiguration" factoryName="Go Application" nameIsGenerated="true">
+      <module name="restaurant_reservation" />
+      <working_directory value="$PROJECT_DIR$/" />
+      <go_parameters value="-i" />
+      <envs>
+        <env name="GOOGLE_APPLICATION_CREDENTIALS" value="$PROJECT_DIR$/../../../../Learning/fir-16bbf-firebase-adminsdk-3gqrr-13de13cf69.json" />
+      </envs>
+      <kind value="DIRECTORY" />
+      <filePath value="$PROJECT_DIR$/user_service" />
+      <package value="github.com/vds/restaurant_reservation" />
+      <directory value="$PROJECT_DIR$/user_service/cmd" />
+      <method v="2" />
+    </configuration>
     <configuration name="TestLogOut in github.com/vds/restaurant_reservation/user_service/pkg/controller" type="GoTestRunConfiguration" factoryName="Go Test" temporary="true" nameIsGenerated="true">
       <module name="restaurant_reservation" />
       <working_directory value="$PROJECT_DIR$/user_service/pkg/controller" />
@@ -124,6 +172,14 @@
       <filePath value="$PROJECT_DIR$/" />
       <method v="2" />
     </configuration>
+    <list>
+      <item itemvalue="Go Build.go build github.com/vds/restaurant_reservation/user_service/cmd" />
+      <item itemvalue="Go Test.go test github.com/vds/restaurant_reservation/management/pkg/controller" />
+      <item itemvalue="Go Test.go test github.com/vds/restaurant_reservation/reservation_service/pkg/controller" />
+      <item itemvalue="Go Test.go test github.com/vds/restaurant_reservation/user_service/pkg" />
+      <item itemvalue="Go Test.go test github.com/vds/restaurant_reservation/user_service/pkg/controller" />
+      <item itemvalue="Go Test.TestLogOut in github.com/vds/restaurant_reservation/user_service/pkg/controller" />
+    </list>
     <recent_temporary>
       <list>
         <item itemvalue="Go Test.go test github.com/vds/restaurant_reservation/user_service/pkg/controller" />
@@ -142,7 +198,9 @@
       <map>
         <entry key="MAIN">
           <value>
-            <State />
+            <State>
+              <option name="COLUMN_ORDER" />
+            </State>
           </value>
         </entry>
       </map>

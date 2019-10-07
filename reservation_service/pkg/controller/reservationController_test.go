@@ -24,7 +24,7 @@ func TestCheckAvailability(t *testing.T){
 	UserToken:=testHelpers.GetUserToken()
 
 	// add data before test
-	DB.CreateTablesForRestaurant(10,2)
+	DB.CreateTablesForRestaurant(nil,10,2)
 	timestring:=fmt.Sprintf("%v",time.Now().Add(1 * time.Minute).Unix())
 
 
@@ -84,7 +84,7 @@ func TestAddReservation(t *testing.T){
 		log.Fatalf("Can not initialize router: %v", err)
 	}
 	// creating data for db
-	DB.CreateTablesForRestaurant(10,2)
+	DB.CreateTablesForRestaurant(nil,10,2)
 
 	UserToken:=testHelpers.GetUserToken()
 

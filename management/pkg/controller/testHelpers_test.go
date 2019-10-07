@@ -2,6 +2,7 @@ package controller_test
 
 import (
 	"github.com/gin-gonic/gin"
+	"github.com/gorilla/mux"
 	"github.com/vds/restaurant_reservation/management/pkg/database/mysql"
 	"github.com/vds/restaurant_reservation/management/pkg/server"
 	"sync"
@@ -26,10 +27,10 @@ func InitDB()(*mysql.MySqlDB,error){
 	return globalDB,err
 }
 
-func GetRouter() (*gin.Engine,error){
+func GetRouter() (*mux.Router,error){
 	var err error
 	OnceRouter.Do(func(){
-		initRouter,er:=server.NewRouter(globalDB)
+		initRouter,er:=server.NewRouter(globalDB,nil)
 		router = initRouter.Create()
 		err=er
 	})
