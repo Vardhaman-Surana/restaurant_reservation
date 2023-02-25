@@ -15,6 +15,6 @@ require (
 	github.com/google/uuid v1.1.1
 	github.com/opencontainers/go-digest v1.0.0-rc1 // indirect
 	github.com/streadway/amqp v0.0.0-20190827072141-edfb9018d271
-	golang.org/x/crypto v0.0.0-20190701094942-4def268fd1a4
+	golang.org/x/crypto v0.1.0
 	google.golang.org/appengine v1.6.1 // indirect
 )
